@@ -1,0 +1,13 @@
+
+    when(headersSpec.exchangeToMono(Mockito.any()))
+            .thenAnswer(invocation -> {
+                Function<ClientResponse, Mono<ResponseWrapper<String>>> func =
+                        invocation.getArgument(0);
+
+                ClientResponse mockClientResponse = Mockito.mock(ClientResponse.class);
+                when(mockClientResponse.statusCode()).thenReturn(HttpStatus.OK);
+                when(mockClientResponse.bodyToMono(String.class))
+                        .thenReturn(Mono.just("Success"));
+
+                return func.apply(mockClientResponse);
+            });
