@@ -1,13 +1,19 @@
-
-    when(headersSpec.exchangeToMono(Mockito.any()))
+ when(headersSpec.exchangeToMono(Mockito.any()))
             .thenAnswer(invocation -> {
                 Function<ClientResponse, Mono<ResponseWrapper<String>>> func =
                         invocation.getArgument(0);
 
                 ClientResponse mockClientResponse = Mockito.mock(ClientResponse.class);
-                when(mockClientResponse.statusCode()).thenReturn(HttpStatus.OK);
+                when(mockClientResponse.statusCode()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR);
                 when(mockClientResponse.bodyToMono(String.class))
-                        .thenReturn(Mono.just("Success"));
+                        .thenReturn(Mono.just("Backend failure"));
 
                 return func.apply(mockClientResponse);
             });
+
+ CustomServiceException exception = assertThrows(
+            CustomServiceException.class,
+            () -> callBackService.postToCallBackService(responseEvent)
+    );
+ assertTrue(exception.getMessage().contains("Actual Error from call back service endpoint"));
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
