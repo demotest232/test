@@ -1,19 +1,44 @@
- when(headersSpec.exchangeToMono(Mockito.any()))
-            .thenAnswer(invocation -> {
-                Function<ClientResponse, Mono<ResponseWrapper<String>>> func =
-                        invocation.getArgument(0);
+// get Paths for export
+public static List<String> pathsForDMExport(GITUtility gitUtil,
+                                            Collection<String> tagList,
+                                            final Set<String> missingTags) throws Exception {
+    List<String> exportPathList = new ArrayList<>();
 
-                ClientResponse mockClientResponse = Mockito.mock(ClientResponse.class);
-                when(mockClientResponse.statusCode()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR);
-                when(mockClientResponse.bodyToMono(String.class))
-                        .thenReturn(Mono.just("Backend failure"));
+    for (String tag : tagList) {
+        String path = GITUtility.getReleaseNumber(tag) 
+                     + IConstants.URL_SEPARATOR 
+                     + tag 
+                     + IConstants.URL_SEPARATOR 
+                     + IConstants.DM_FOLDER;
+        try {
+            // Get repository object
+            GHRepository repo = gitUtil.getRepository();
 
-                return func.apply(mockClientResponse);
-            });
+            // Fetch recursive tree for given branch
+            GHTree tree = repo.getTreeRecursive(inputData.getDbRequestBranch(), 1);
+            if (tree == null || tree.getTree().isEmpty()) {
+                throw new Exception(path + " Not Found!!");
+            }
 
- CustomServiceException exception = assertThrows(
-            CustomServiceException.class,
-            () -> callBackService.postToCallBackService(responseEvent)
-    );
- assertTrue(exception.getMessage().contains("Actual Error from call back service endpoint"));
-    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
+            for (GHTreeEntry entry : tree.getTree()) {
+                try {
+                    // Fetch file content from repo
+                    GHContent content = repo.getFileContent(entry.getPath(), inputData.getDbRequestBranch());
+
+                    // Optionally read file content
+                    String fileText = content.getContent(); // or content.read()
+                    
+                    exportPathList.add(entry.getPath());
+                } catch (IOException ioEx) {
+                    Logger.log(Level.INFO, path + " Not Found!!", DBConsolidator.class);
+                    continue;
+                }
+            }
+        } catch (IOException gitEx) {
+            Logger.log(Level.INFO, path + " Not Found!!", DBConsolidator.class);
+            continue;
+        }
+        missingTags.remove(tag);
+    }
+    return exportPathList;
+}
