@@ -8,46 +8,69 @@ public List<String> getDiffFiles(String[] tags,
     // Get repo
     GHRepository repo = gitUtil.getRepository();
 
-    // Compare two tags (tags[0] vs tags[1])
-    GHCompare compare = repo.getCompare(tags[0], tags[1]);
+    // Get tree for both tags
+    GHTree tree1 = repo.getTreeRecursive(tags[0], 1); // base tag
+    GHTree tree2 = repo.getTreeRecursive(tags[1], 1); // compare tag
 
-    // Iterate through changed files
-    for (GHCommit.File diff : compare.getFiles()) {
-        boolean excludeInd = false;
+    // Collect file paths
+    Set<String> filesInTag1 = tree1.getTree().stream()
+            .map(GHTreeEntry::getPath)
+            .collect(Collectors.toSet());
 
-        // Skip deleted files
-        if ("removed".equalsIgnoreCase(diff.getStatus())) {
-            continue;
-        }
+    Set<String> filesInTag2 = tree2.getTree().stream()
+            .map(GHTreeEntry::getPath)
+            .collect(Collectors.toSet());
 
-        // Apply excluded folder logic
-        if (excludedFolders != null) {
-            for (String excludedFolder : excludedFolders) {
-                if (diff.getFileName().contains(excludedFolder)) {
-                    excludeInd = true;
-                    break;
-                }
+    // Added files (in tag2 but not tag1)
+    Set<String> added = new HashSet<>(filesInTag2);
+    added.removeAll(filesInTag1);
+
+    // Removed files (in tag1 but not tag2)
+    Set<String> removed = new HashSet<>(filesInTag1);
+    removed.removeAll(filesInTag2);
+
+    // Modified (present in both → you can refine by hash comparison)
+    Set<String> modified = new HashSet<>(filesInTag1);
+    modified.retainAll(filesInTag2);
+
+    // Apply excluded folder logic + fill lists
+    for (String filePath : added) {
+        if (!isExcluded(filePath, excludedFolders)) {
+            if (filesAdded != null) {
+                filesAdded.add(trimPath(filePath));
             }
-        }
-
-        if (!excludeInd) {
-            String filePath = diff.getFileName();
-
-            if (filePath.contains("Packages")) {
-                // do nothing
-            } else if (filePath.contains("Grants")) {
-                filesModified.add(filePath);
-            } else {
-                filesModified.add(filePath.substring(Math.min(19, filePath.length())));
-            }
-        }
-
-   
-        if ((filesAdded != null) && "added".equalsIgnoreCase(diff.getStatus())) {
-            String filePath = diff.getFileName();
-            filesAdded.add(filePath.substring(Math.min(19, filePath.length())));
         }
     }
 
+    for (String filePath : modified) {
+        if (!isExcluded(filePath, excludedFolders)) {
+            filesModified.add(trimPath(filePath));
+        }
+    }
+
+    // We skip removed files here (you can add if needed)
+
     return filesModified;
+}
+
+// Helper: exclude check
+private boolean isExcluded(String filePath, String[] excludedFolders) {
+    if (excludedFolders == null) return false;
+    for (String folder : excludedFolders) {
+        if (filePath.contains(folder)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Helper: trim path like your GitLab code
+private String trimPath(String filePath) {
+    if (filePath.contains("Packages")) {
+        return null; // skip
+    } else if (filePath.contains("Grants")) {
+        return filePath;
+    } else {
+        return filePath.length() > 19 ? filePath.substring(19) : filePath;
+    }
 }
