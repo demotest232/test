@@ -1,44 +1,50 @@
-// get Paths for export
-public static List<String> pathsForDMExport(GITUtility gitUtil,
-                                            Collection<String> tagList,
-                                            final Set<String> missingTags) throws Exception {
-    List<String> exportPathList = new ArrayList<>();
+public List<String> getDiffFiles(String[] tags,
+                                 String compPath,
+                                 List<String> filesAdded,
+                                 final String[] excludedFolders) throws IOException {
 
-    for (String tag : tagList) {
-        String path = GITUtility.getReleaseNumber(tag) 
-                     + IConstants.URL_SEPARATOR 
-                     + tag 
-                     + IConstants.URL_SEPARATOR 
-                     + IConstants.DM_FOLDER;
-        try {
-            // Get repository object
-            GHRepository repo = gitUtil.getRepository();
+    List<String> filesModified = new ArrayList<>();
 
-            // Fetch recursive tree for given branch
-            GHTree tree = repo.getTreeRecursive(inputData.getDbRequestBranch(), 1);
-            if (tree == null || tree.getTree().isEmpty()) {
-                throw new Exception(path + " Not Found!!");
-            }
+    // Get repo
+    GHRepository repo = gitUtil.getRepository();
 
-            for (GHTreeEntry entry : tree.getTree()) {
-                try {
-                    // Fetch file content from repo
-                    GHContent content = repo.getFileContent(entry.getPath(), inputData.getDbRequestBranch());
+    // Compare two tags (tags[0] vs tags[1])
+    GHCompare compare = repo.getCompare(tags[0], tags[1]);
 
-                    // Optionally read file content
-                    String fileText = content.getContent(); // or content.read()
-                    
-                    exportPathList.add(entry.getPath());
-                } catch (IOException ioEx) {
-                    Logger.log(Level.INFO, path + " Not Found!!", DBConsolidator.class);
-                    continue;
-                }
-            }
-        } catch (IOException gitEx) {
-            Logger.log(Level.INFO, path + " Not Found!!", DBConsolidator.class);
+    // Iterate through changed files
+    for (GHCommit.File diff : compare.getFiles()) {
+        boolean excludeInd = false;
+
+        // Skip deleted files
+        if ("removed".equalsIgnoreCase(diff.getStatus())) {
             continue;
         }
-        missingTags.remove(tag);
+
+        // Apply excluded folder logic
+        if (excludedFolders != null) {
+            for (String excludedFolder : excludedFolders) {
+                if (diff.getFileName().contains(excludedFolder)) {
+                    excludeInd = true;
+                    break;
+                }
+            }
+        }
+
+        if (!excludeInd) {
+            String filePath = diff.getFileName();
+
+            if (filePath.contains("Packages")) {
+                // do nothing
+            } else if (filePath.contains("Grants")) {
+                filesModified.add(filePath);
+            } else {
+                // Example: trimming leading folder
+                filesModified.add(filePath.substring(Math.min(19, filePath.length())));
+            }
+
+            filesAdded.add(filePath);
+        }
     }
-    return exportPathList;
+
+    return filesModified;
 }
