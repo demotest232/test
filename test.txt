@@ -38,11 +38,14 @@ public List<String> getDiffFiles(String[] tags,
             } else if (filePath.contains("Grants")) {
                 filesModified.add(filePath);
             } else {
-                // Example: trimming leading folder
                 filesModified.add(filePath.substring(Math.min(19, filePath.length())));
             }
+        }
 
-            filesAdded.add(filePath);
+   
+        if ((filesAdded != null) && "added".equalsIgnoreCase(diff.getStatus())) {
+            String filePath = diff.getFileName();
+            filesAdded.add(filePath.substring(Math.min(19, filePath.length())));
         }
     }
 
