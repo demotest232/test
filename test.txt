@@ -1,50 +1,26 @@
-// Get Paths for export
-public static List<String> pathsForDMExport(GitHubUtility gitUtil,
-                                            Collection<String> tagList,
-                                            final Set<String> missingTags,
-                                            InputData inputData) throws Exception {
+public void saveDiffFiles(Collection<String> pathList, String location, boolean dbScript) throws IOException {
+    for (String path : pathList) {
+        String folderName;
 
-    List<String> exportPathList = new ArrayList<>();
+        if (path.contains("/DM/")) {
+            folderName = path.substring(path.lastIndexOf("/DM/") + 4);
+        } else {
+            folderName = path.substring(path.lastIndexOf(IConstants.URL_SEPARATOR) + 1);
+        }
 
-    for (String tag : tagList) {
-        String path = GitHubUtility.getReleaseNumber(tag)
-                + IConstants.URL_SEPARATOR
-                + tag
-                + IConstants.URL_SEPARATOR
-                + IConstants.DM_FOLDER;
+        File outputFile = new File(location + File.separator + folderName);
+        outputFile.getParentFile().mkdirs();
 
-        System.out.println("Path = " + path);
+        //fetch file content
+        GHRepository repo = dbScript
+                ? gitUtil.getRepository(inputData.getGitOrgName(), inputData.getGitDbScriptProjectId())
+                : gitUtil.getRepository(inputData.getGitOrgName(), inputData.getGitDbDocsProjectId());
 
-        try {
-            // Get repository object
-            GHRepository repo = gitUtil.getRepository(
-                    inputData.getGitOrgName(),
-                    inputData.getDbRequestPath());
+        GHContent content = repo.getFileContent(path, inputData.getDbRequestBranch());
 
-            // Fetch recursive tree for given branch
-            GHTree tree = repo.getTreeRecursive(inputData.getDbRequestBranch(), 1);
-
-            if (tree == null || tree.getTree().isEmpty()) {
-                throw new Exception(path + " Not Found!!");
-            }
-
-            // Filter entries by given path (GitHub doesn’t accept path param directly)
-            for (GHTreeEntry entry : tree.getTree()) {
-                if (entry.getPath().startsWith(path)) {
-                    // Fetch file content if needed
-                    GHContent fileContent = repo.getFileContent(entry.getPath(), inputData.getDbRequestBranch());
-
-                    // Example: store file path
-                    exportPathList.add(entry.getPath());
-                }
-            }
-
-        } catch (Exception e) {
-            System.out.println(path + " Not Found!!");
-            missingTags.remove(tag);
-            continue;
+        // Save to disk
+        try (OutputStream os = new FileOutputStream(outputFile, false)) {
+            os.write(content.read().readAllBytes());
         }
     }
-
-    return exportPathList;
 }
