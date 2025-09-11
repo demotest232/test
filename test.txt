@@ -1,26 +1,9 @@
-public void saveDiffFiles(Collection<String> pathList, String location, boolean dbScript) throws IOException {
-    for (String path : pathList) {
-        String folderName;
-
-        if (path.contains("/DM/")) {
-            folderName = path.substring(path.lastIndexOf("/DM/") + 4);
-        } else {
-            folderName = path.substring(path.lastIndexOf(IConstants.URL_SEPARATOR) + 1);
+// Save to disk (proper InputStream copy)
+        try (InputStream in = content.read();
+             OutputStream os = new FileOutputStream(outputFile, false)) {
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = in.read(buffer)) != -1) {
+                os.write(buffer, len);
+            }
         }
-
-        File outputFile = new File(location + File.separator + folderName);
-        outputFile.getParentFile().mkdirs();
-
-        //fetch file content
-        GHRepository repo = dbScript
-                ? gitUtil.getRepository(inputData.getGitOrgName(), inputData.getGitDbScriptProjectId())
-                : gitUtil.getRepository(inputData.getGitOrgName(), inputData.getGitDbDocsProjectId());
-
-        GHContent content = repo.getFileContent(path, inputData.getDbRequestBranch());
-
-        // Save to disk
-        try (OutputStream os = new FileOutputStream(outputFile, false)) {
-            os.write(content.read().readAllBytes());
-        }
-    }
-}
