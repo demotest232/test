@@ -1,25 +1,27 @@
-public void saveDiffFiles(String tag, String compPath, String location, List<String> filesModified) throws Exception {
-    // Get GitHub repository 
+public void generateDiffFile(final File diffFile,
+                             final String fromTag,
+                             final String toTag,
+                             final String compPath) throws Exception {
+
     GHRepository repo = gitUtil.getRepository(
             inputData.getGitOrgName(),
             inputData.getGitDbScriptProjectId()
     );
 
-    for (String file : filesModified) {
-        File outputFile = new File(location + File.separator + file);
-        outputFile.getParentFile().mkdirs();
-        outputFile.createNewFile();
+    GHCompare compare = repo.getCompare(fromTag, toTag);
+    List<GHCommit.File> diffs = compare.getFiles();
 
-        // Fetch file from GitHub at specific tag (ref)
-        GHContent content = repo.getFileContent(file, tag);
+    for (GHCommit.File diff : diffs) {
+        String newPath = diff.getFileName();
 
-        // Save to disk
-        try (InputStream in = content.read();
-             OutputStream os = new FileOutputStream(outputFile, false)) {
-            byte[] buffer = new byte[8192];
-            int len;
-            while ((len = in.read(buffer)) != -1) {
-                os.write(buffer, 0, len);
+        if (newPath.substring(newPath.lastIndexOf(IConstants.URL_SEPARATOR) + 1)
+                .equalsIgnoreCase(diffFile.getName())) {
+
+            GHContent content = repo.getFileContent(newPath, toTag);
+
+            try (InputStream in = content.read();
+                 OutputStream os = new FileOutputStream(diffFile, false)) {
+                os.write(in.readAllBytes()); // save full file content
             }
         }
     }
