@@ -1,9 +1,26 @@
-// Save to disk (proper InputStream copy)
+public void saveDiffFiles(String tag, String compPath, String location, List<String> filesModified) throws Exception {
+    // Get GitHub repository 
+    GHRepository repo = gitUtil.getRepository(
+            inputData.getGitOrgName(),
+            inputData.getGitDbScriptProjectId()
+    );
+
+    for (String file : filesModified) {
+        File outputFile = new File(location + File.separator + file);
+        outputFile.getParentFile().mkdirs();
+        outputFile.createNewFile();
+
+        // Fetch file from GitHub at specific tag (ref)
+        GHContent content = repo.getFileContent(file, tag);
+
+        // Save to disk
         try (InputStream in = content.read();
              OutputStream os = new FileOutputStream(outputFile, false)) {
             byte[] buffer = new byte[8192];
             int len;
             while ((len = in.read(buffer)) != -1) {
-                os.write(buffer, len);
+                os.write(buffer, 0, len);
             }
         }
+    }
+}
