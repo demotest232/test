@@ -1,28 +1,37 @@
-public void generateDiffFile(final File diffFile,
-                             final String fromTag,
-                             final String toTag,
-                             final String compPath) throws Exception {
+// Exclude check (exact folder match, not just contains)
+private boolean isExcluded(String filePath, String[] excludedFolders) {
+    if (excludedFolders == null) {
+        return false;
+    }
 
-    GHRepository repo = gitUtil.getRepository(
-            inputData.getGitOrgName(),
-            inputData.getGitDbScriptProjectId()
-    );
+    for (String folder : excludedFolders) {
+        // Normalize both to avoid partial matches like "DM" vs "DML"
+        if (filePath.equals(folder) || filePath.startsWith(folder + "/")) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    GHCompare compare = repo.getCompare(fromTag, toTag);
-    List<GHCommit.File> diffs = compare.getFiles();
+// Helper: trim path
+private String trimPath(String filePath) {
+    if (filePath.contains("Packages")) {
+        return null; // skip Packages
+    } else if (filePath.contains("Grants")) {
+        return filePath; // keep Grants as-is
+    } else {
+        return filePath.length() > 19 ? filePath.substring(19) : filePath;
+    }
+}
 
-    for (GHCommit.File diff : diffs) {
-        String newPath = diff.getFileName();
-
-        if (newPath.substring(newPath.lastIndexOf(IConstants.URL_SEPARATOR) + 1)
-                .equalsIgnoreCase(diffFile.getName())) {
-
-            GHContent content = repo.getFileContent(newPath, toTag);
-
-            try (InputStream in = content.read();
-                 OutputStream os = new FileOutputStream(diffFile, false)) {
-                os.write(in.readAllBytes()); // save full file content
-            }
+// Main loop
+List<String> filesModified = new ArrayList<>();
+for (String filePath : modified) {
+    if (!isExcluded(filePath, excludedFolders)) {
+        String trimmed = trimPath(filePath);
+        if (trimmed != null) {
+            filesModified.add(trimmed);
         }
     }
 }
+return filesModified;
