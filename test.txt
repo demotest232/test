@@ -1,17 +1,14 @@
-GHCompare compare = repo.getCompare(tags[0], tags[1]);
-Set<String> added = new HashSet<>();
-Set<String> removed = new HashSet<>();
-Set<String> modified = new HashSet<>();
+Map<String,String> shaInTag1 = tree1.getTree().stream()
+    .filter(e -> "blob".equals(e.getType()))
+    .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
 
-for (GHCompare.CommitFile f : compare.getFiles()) {
-    String status = f.getStatus(); // "added", "removed", "modified", "renamed"
-    switch (status) {
-        case "added":    added.add(f.getFileName()); break;
-        case "removed":  removed.add(f.getFileName()); break;
-        case "modified": modified.add(f.getFileName()); break;
-        case "renamed":
-            // you can handle rename specially if needed:
-            // f.getFileName() is new name, f.getPreviousFileName() is old name
-            break;
-    }
-}
+Map<String,String> shaInTag2 = tree2.getTree().stream()
+    .filter(e -> "blob".equals(e.getType()))
+    .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+
+
+// Modified = paths present in both but with different SHAs
+Set<String> modified = shaInTag1.keySet().stream()
+    .filter(shaInTag2::containsKey)                   // exists in both
+    .filter(p -> !Objects.equals(shaInTag1.get(p), shaInTag2.get(p))) // content changed
+    .collect(Collectors.toSet());
