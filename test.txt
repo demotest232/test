@@ -1,14 +1,6 @@
-Map<String,String> shaInTag1 = tree1.getTree().stream()
-    .filter(e -> "blob".equals(e.getType()))
-    .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+// Added / removed by path
+Set<String> added = new HashSet<>(shaInTag2.keySet());
+added.removeAll(shaInTag1.keySet());
 
-Map<String,String> shaInTag2 = tree2.getTree().stream()
-    .filter(e -> "blob".equals(e.getType()))
-    .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
-
-
-// Modified = paths present in both but with different SHAs
-Set<String> modified = shaInTag1.keySet().stream()
-    .filter(shaInTag2::containsKey)                   // exists in both
-    .filter(p -> !Objects.equals(shaInTag1.get(p), shaInTag2.get(p))) // content changed
-    .collect(Collectors.toSet());
+Set<String> removed = new HashSet<>(shaInTag1.keySet());
+removed.removeAll(shaInTag2.keySet());
