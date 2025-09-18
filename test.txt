@@ -1,5 +1,62 @@
-<dependency>
-  <groupId>io.github.java-diff-utils</groupId>
-  <artifactId>java-diff-utils</artifactId>
-  <version>4.12</version>
-</dependency>
+public void generateDiffFile(final File diffFile,
+                             final String fromTag,
+                             final String toTag,
+                             final String compPath) throws IOException {
+
+    // Get repo
+    GHRepository repo = github.getOrganization(inputData.getOrgName())
+                              .getRepository(inputData.getRepoName());
+
+    // Get trees for both tags
+    GHTree tree1 = repo.getTreeRecursive(fromTag, 1);
+    GHTree tree2 = repo.getTreeRecursive(toTag, 1);
+
+    // Map path -> sha
+    Map<String, String> shaInTag1 = tree1.getTree().stream()
+            .filter(e -> "blob".equals(e.getType()))
+            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+
+    Map<String, String> shaInTag2 = tree2.getTree().stream()
+            .filter(e -> "blob".equals(e.getType()))
+            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+
+    String targetFileName = diffFile.getName();
+
+    for (String path : shaInTag2.keySet()) {
+        String fileName = path.substring(path.lastIndexOf("/") + 1);
+
+        if (fileName.equalsIgnoreCase(targetFileName)
+                && shaInTag1.containsKey(path)
+                && !shaInTag1.get(path).equals(shaInTag2.get(path))) {
+
+            // Get both blob contents
+            GHBlob blobOld = repo.getBlob(shaInTag1.get(path));
+            GHBlob blobNew = repo.getBlob(shaInTag2.get(path));
+
+            String oldContent = new String(
+                    Base64.getDecoder().decode(blobOld.getContent()),
+                    StandardCharsets.UTF_8
+            );
+            String newContent = new String(
+                    Base64.getDecoder().decode(blobNew.getContent()),
+                    StandardCharsets.UTF_8
+            );
+
+            // Generate unified diff (basic implementation)
+            List<String> oldLines = Arrays.asList(oldContent.split("\n"));
+            List<String> newLines = Arrays.asList(newContent.split("\n"));
+
+            String diffPatch = DiffUtils.generateUnifiedDiff(
+                    fromTag + "/" + path,
+                    toTag + "/" + path,
+                    oldLines,
+                    DiffUtils.diff(oldLines, newLines),
+                    3
+            ).stream().collect(Collectors.joining("\n"));
+
+            try (OutputStream os = new FileOutputStream(diffFile, false)) {
+                os.write(diffPatch.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+    }
+}
