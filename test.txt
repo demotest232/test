@@ -1,12 +1,9 @@
-private String decodeBlob(GHBlob blob) {
-    String encoding = blob.getEncoding();
-    String content = blob.getContent();
+String oldContent = new String(
+        repo.getFileContent(path, fromTag).read().readAllBytes(),
+        StandardCharsets.UTF_8
+);
 
-    if ("base64".equalsIgnoreCase(encoding)) {
-        // decode base64 safely
-        return new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
-    } else {
-        // already plain UTF-8 text (no decoding needed)
-        return content;
-    }
-}
+String newContent = new String(
+        repo.getFileContent(path, toTag).read().readAllBytes(),
+        StandardCharsets.UTF_8
+);
