@@ -1,6 +1,25 @@
-// Added / removed by path
-Set<String> added = new HashSet<>(shaInTag2.keySet());
-added.removeAll(shaInTag1.keySet());
+public void generateDiffFile(final File diffFile,
+                             final String fromTag,
+                             final String toTag,
+                             final String compPath) throws IOException {
 
-Set<String> removed = new HashSet<>(shaInTag1.keySet());
-removed.removeAll(shaInTag2.keySet());
+    // Get repo
+    GHRepository repo = github.getOrganization(inputData.getOrgName())
+                              .getRepository(inputData.getRepoName());
+
+    // Compare tags
+    GHCompare compare = repo.getCompare(fromTag, toTag);
+
+    for (GHCompare.CommitFile file : compare.getFiles()) {
+        String fileName = file.getFileName()
+                              .substring(file.getFileName().lastIndexOf("/") + 1);
+
+        if (fileName.equalsIgnoreCase(diffFile.getName())) {
+            try (OutputStream os = new FileOutputStream(diffFile, false)) {
+                if (file.getPatch() != null) {
+                    os.write(file.getPatch().getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        }
+    }
+}
