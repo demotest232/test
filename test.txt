@@ -1,9 +1,53 @@
-String oldContent = new String(
-        repo.getFileContent(path, fromTag).read().readAllBytes(),
-        StandardCharsets.UTF_8
-);
+public void generateDiffFile(final File diffFile,
+                             final String fromTag,
+                             final String toTag,
+                             final String compPath) throws IOException {
 
-String newContent = new String(
-        repo.getFileContent(path, toTag).read().readAllBytes(),
-        StandardCharsets.UTF_8
-);
+    GHRepository repo = github.getOrganization(inputData.getOrgName())
+                              .getRepository(inputData.getRepoName());
+
+    GHTree tree1 = repo.getTreeRecursive(fromTag, 1);
+    GHTree tree2 = repo.getTreeRecursive(toTag, 1);
+
+    Map<String, String> shaInTag1 = tree1.getTree().stream()
+            .filter(e -> "blob".equals(e.getType()))
+            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+
+    Map<String, String> shaInTag2 = tree2.getTree().stream()
+            .filter(e -> "blob".equals(e.getType()))
+            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
+
+    String targetFileName = diffFile.getName();
+
+    for (String path : shaInTag2.keySet()) {
+        String fileName = path.substring(path.lastIndexOf("/") + 1);
+
+        if (fileName.equalsIgnoreCase(targetFileName)
+                && shaInTag1.containsKey(path)
+                && !shaInTag1.get(path).equals(shaInTag2.get(path))) {
+
+            // ✅ Safe content fetch (no base64 issues)
+            String oldContent = repo.getFileContent(path, fromTag).getContent();
+            String newContent = repo.getFileContent(path, toTag).getContent();
+
+            List<String> oldLines = Arrays.asList(oldContent.split("\n"));
+            List<String> newLines = Arrays.asList(newContent.split("\n"));
+
+            Patch<String> patch = DiffUtils.diff(oldLines, newLines);
+
+            List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
+                    fromTag + "/" + path,
+                    toTag + "/" + path,
+                    oldLines,
+                    patch,
+                    3
+            );
+
+            String diffPatch = String.join("\n", unifiedDiff);
+
+            try (OutputStream os = new FileOutputStream(diffFile, false)) {
+                os.write(diffPatch.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+    }
+}
