@@ -1,21 +1,10 @@
-List<String> oldLines = Arrays.asList(oldContent.split("\n"));
-List<String> newLines = Arrays.asList(newContent.split("\n"));
-
-// build patch
-Patch<String> patch = DiffUtils.diff(oldLines, newLines);
-
-// generate unified diff (returns List<String>)
-List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
-        fromTag + "/" + path,
-        toTag + "/" + path,
-        oldLines,
-        patch,
-        3
-);
-
-// join into single string
-String diffPatch = String.join("\n", unifiedDiff);
-
-try (OutputStream os = new FileOutputStream(diffFile, false)) {
-    os.write(diffPatch.getBytes(StandardCharsets.UTF_8));
+private String decodeBlob(GHBlob blob) {
+    if ("base64".equalsIgnoreCase(blob.getEncoding())) {
+        return new String(Base64.getDecoder().decode(blob.getContent()), StandardCharsets.UTF_8);
+    }
+    return blob.getContent();
 }
+
+// usage
+String oldContent = decodeBlob(blobOld);
+String newContent = decodeBlob(blobNew);
