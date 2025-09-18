@@ -5,7 +5,7 @@ List<String> newLines = Arrays.asList(newContent.split("\n"));
 Patch<String> patch = DiffUtils.diff(oldLines, newLines);
 
 // generate unified diff (returns List<String>)
-List<String> unifiedDiff = DiffUtils.generateUnifiedDiff(
+List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
         fromTag + "/" + path,
         toTag + "/" + path,
         oldLines,
@@ -19,4 +19,3 @@ String diffPatch = String.join("\n", unifiedDiff);
 try (OutputStream os = new FileOutputStream(diffFile, false)) {
     os.write(diffPatch.getBytes(StandardCharsets.UTF_8));
 }
-
