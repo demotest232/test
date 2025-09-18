@@ -1,10 +1,12 @@
 private String decodeBlob(GHBlob blob) {
-    if ("base64".equalsIgnoreCase(blob.getEncoding())) {
-        return new String(Base64.getDecoder().decode(blob.getContent()), StandardCharsets.UTF_8);
-    }
-    return blob.getContent();
-}
+    String encoding = blob.getEncoding();
+    String content = blob.getContent();
 
-// usage
-String oldContent = decodeBlob(blobOld);
-String newContent = decodeBlob(blobNew);
+    if ("base64".equalsIgnoreCase(encoding)) {
+        // decode base64 safely
+        return new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+    } else {
+        // already plain UTF-8 text (no decoding needed)
+        return content;
+    }
+}
