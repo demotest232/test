@@ -1,53 +1,26 @@
-public void generateDiffFile(final File diffFile,
-                             final String fromTag,
-                             final String toTag,
-                             final String compPath) throws IOException {
+ public void saveAllFiles(String branch, String location) throws IOException {
+        List<String> allFilesList = Arrays.asList("Grants", "Packages", "Views",
+                "Functions", "Procedures", "Triggers");
 
-    GHRepository repo = github.getOrganization(inputData.getOrgName())
-                              .getRepository(inputData.getRepoName());
+        for (String file : allFilesList) {
+            try {
+                // Get directory/tree recursively from GitHub
+                PagedIterable<GHContent> contents = repository.getDirectoryContent(file, branch);
 
-    GHTree tree1 = repo.getTreeRecursive(fromTag, 1);
-    GHTree tree2 = repo.getTreeRecursive(toTag, 1);
+                for (GHContent content : contents) {
+                    if (content.isFile()) {
+                        // Create local file structure
+                        File outputFile = new File(location + File.separator + content.getPath());
+                        outputFile.getParentFile().mkdirs();
 
-    Map<String, String> shaInTag1 = tree1.getTree().stream()
-            .filter(e -> "blob".equals(e.getType()))
-            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
-
-    Map<String, String> shaInTag2 = tree2.getTree().stream()
-            .filter(e -> "blob".equals(e.getType()))
-            .collect(Collectors.toMap(GHTreeEntry::getPath, GHTreeEntry::getSha));
-
-    String targetFileName = diffFile.getName();
-
-    for (String path : shaInTag2.keySet()) {
-        String fileName = path.substring(path.lastIndexOf("/") + 1);
-
-        if (fileName.equalsIgnoreCase(targetFileName)
-                && shaInTag1.containsKey(path)
-                && !shaInTag1.get(path).equals(shaInTag2.get(path))) {
-
-            // ✅ Safe content fetch (no base64 issues)
-            String oldContent = repo.getFileContent(path, fromTag).getContent();
-            String newContent = repo.getFileContent(path, toTag).getContent();
-
-            List<String> oldLines = Arrays.asList(oldContent.split("\n"));
-            List<String> newLines = Arrays.asList(newContent.split("\n"));
-
-            Patch<String> patch = DiffUtils.diff(oldLines, newLines);
-
-            List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
-                    fromTag + "/" + path,
-                    toTag + "/" + path,
-                    oldLines,
-                    patch,
-                    3
-            );
-
-            String diffPatch = String.join("\n", unifiedDiff);
-
-            try (OutputStream os = new FileOutputStream(diffFile, false)) {
-                os.write(diffPatch.getBytes(StandardCharsets.UTF_8));
+                        try (OutputStream os = new FileOutputStream(outputFile, false)) {
+                            byte[] decoded = content.read().readAllBytes();
+                            os.write(decoded);
+                        }
+                    }
+                }
+            } catch (GHFileNotFoundException e) {
+                System.out.println(file + " Not Found!!");
             }
         }
     }
-}
