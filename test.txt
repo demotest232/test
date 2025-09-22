@@ -1,1 +1,6 @@
+@JsonAnySetter
+public void setData(String key, Object value) {
+	if (data != null && key != null) {
+		data.put(key.toLowerCase(), value);
+	}   
 }
