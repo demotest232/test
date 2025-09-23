@@ -1,7 +1,5 @@
-public void setData(Map<String, String> data) {
-    if (data != null) {
-        Map<String, String> caseInsensitive = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        caseInsensitive.putAll(data);
-        this.data = caseInsensitive;
-    } 
-}
+spring:
+  jackson:
+    mapper:
+      ACCEPT_CASE_INSENSITIVE_PROPERTIES: true
+    property-naming-strategy: SNAKE_CASE
