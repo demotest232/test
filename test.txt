@@ -1,5 +1,36 @@
-spring:
-  jackson:
-    mapper:
-      ACCEPT_CASE_INSENSITIVE_PROPERTIES: true
-    property-naming-strategy: SNAKE_CASE
+package com.praveen.employee.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+
+@Configuration
+public class OpenAPIConfig {
+
+	private final AppConfig appConfig;
+
+	public OpenAPIConfig(AppConfig appConfig) {
+		super();
+		this.appConfig = appConfig;
+	}
+
+	@Bean
+	OpenAPI customOpenAPI() {
+		return new OpenAPI().components(new Components())
+				.info(new Info().title(appConfig.getOpenApiTitle()).description(appConfig.getOpenApiDescription()));
+	}
+
+}
+
+@Tag(description = "Employee Management Operations", name = "Employee Management Operations")
+
+
+springdoc:
+   use-fqn: true
+   swagger-ui:
+    doc-expansion: none
+    operationsSorter: method
+#   supportedSubmitMethods: []
