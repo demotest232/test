@@ -1,36 +1,24 @@
-package com.praveen.employee.config;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-public class OpenAPIConfig {
+public class SecurityConfig {
 
-	private final AppConfig appConfig;
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
+                    "/swagger-ui/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .csrf(csrf -> csrf.disable()); // disable CSRF for simplicity (esp. if using APIs)
 
-	public OpenAPIConfig(AppConfig appConfig) {
-		super();
-		this.appConfig = appConfig;
-	}
-
-	@Bean
-	OpenAPI customOpenAPI() {
-		return new OpenAPI().components(new Components())
-				.info(new Info().title(appConfig.getOpenApiTitle()).description(appConfig.getOpenApiDescription()));
-	}
-
+        return http.build();
+    }
 }
-
-@Tag(description = "Employee Management Operations", name = "Employee Management Operations")
-
-
-springdoc:
-   use-fqn: true
-   swagger-ui:
-    doc-expansion: none
-    operationsSorter: method
-#   supportedSubmitMethods: []
