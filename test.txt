@@ -1,22 +1,21 @@
-$scope.allowedDomains = [
-  "citi.com",
-  "ssmb.com",
-  "imcnam.ssmb.com",
-  "iuo.citi.com",
-  "imceu.eu.ssmb.com"
-];
+// Build SSL context using HttpClient5 API
+SSLContext sslContext = SSLContextBuilder.create()
+    .loadKeyMaterial(keyStore, password)       // supply your keystore and password
+    .loadTrustMaterial(new TrustAllStrategy()) // use TrustAllStrategy or your custom one
+    .build();
 
-$scope.emailPattern = /^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/;
+// NoopHostnameVerifier
+NoopHostnameVerifier noopVerifier = NoopHostnameVerifier.INSTANCE;
 
-$scope.isEmailValid = function(email) {
-  if (!email || !$scope.emailPattern.test(email)) {
-    return false;
-  }
-  var domain = email.split('@')[1];
-  return $scope.allowedDomains.includes(domain);
-};
+// Build HttpClient5
+HttpClient httpClient = HttpClients.custom()
+    .setSSLContext(sslContext)
+    .setSSLHostnameVerifier(noopVerifier)
+    .build();
 
-if (!$scope.isEmailValid(data.email)) {
-    functions.alert("error", "Invalid Email address", function () {});
-    return;  // Stop here if invalid email
-}
+// Create the request factory with HttpClient5
+HttpComponentsClientHttpRequestFactory requestFactory =
+    new HttpComponentsClientHttpRequestFactory(httpClient);
+
+// Finally, create RestTemplate with the request factory
+RestTemplate restTemplate = new RestTemplate(requestFactory);
