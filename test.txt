@@ -1,16 +1,17 @@
-// Build SSL context using HttpClient5 API
-SSLContext sslContext = SSLContextBuilder.create()
-    .loadKeyMaterial(keyStore, password)       // supply your keystore and password
-    .loadTrustMaterial(new TrustAllStrategy()) // use TrustAllStrategy or your custom one
+// Create SSL socket factory with NoopHostnameVerifier
+SSLConnectionSocketFactory socketFactory = SSLConnectionSocketFactoryBuilder.create()
+    .setSslContext(sslContext)
+    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
     .build();
 
-// NoopHostnameVerifier
-NoopHostnameVerifier noopVerifier = NoopHostnameVerifier.INSTANCE;
+// Build connection manager using the custom socket factory
+PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+    .setSSLSocketFactory(socketFactory)
+    .build();
 
-// Build HttpClient5
-HttpClient httpClient = HttpClients.custom()
-    .setSSLContext(sslContext)
-    .setSSLHostnameVerifier(noopVerifier)
+// Build the HttpClient
+CloseableHttpClient httpClient = HttpClients.custom()
+    .setConnectionManager(connectionManager)
     .build();
 
 // Create the request factory with HttpClient5
