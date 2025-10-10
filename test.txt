@@ -1,22 +1,9 @@
-// Create SSL socket factory with NoopHostnameVerifier
-SSLConnectionSocketFactory socketFactory = SSLConnectionSocketFactoryBuilder.create()
-    .setSslContext(sslContext)
-    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-    .build();
+String decodedContent = content.getContent();
+                        byte[] bytes = decodedContent.getBytes(StandardCharsets.UTF_8);
 
-// Build connection manager using the custom socket factory
-PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-    .setSSLSocketFactory(socketFactory)
-    .build();
+                        File outputFile = new File(location + File.separator + content.getPath());
+                        outputFile.getParentFile().mkdirs();
 
-// Build the HttpClient
-CloseableHttpClient httpClient = HttpClients.custom()
-    .setConnectionManager(connectionManager)
-    .build();
-
-// Create the request factory with HttpClient5
-HttpComponentsClientHttpRequestFactory requestFactory =
-    new HttpComponentsClientHttpRequestFactory(httpClient);
-
-// Finally, create RestTemplate with the request factory
-RestTemplate restTemplate = new RestTemplate(requestFactory);
+                        try (OutputStream os = new FileOutputStream(outputFile, false)) {
+                            os.write(bytes);
+                        }
