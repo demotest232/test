@@ -1,8 +1,18 @@
-int dmIndex = path.indexOf("/DM/") + 4;
-    int nextSlash = path.indexOf("/", dmIndex);
-    String requestNbr;
-    if (nextSlash != -1) {
-        requestNbr = path.substring(dmIndex, nextSlash);
-    } else {
-        requestNbr = path.substring(dmIndex); // till end if no more "/"
+// Exclude files in "excludedFolders"
+    if (excludedFolders != null) {
+        List<String> excludes = Arrays.asList(excludedFolders);
+        Predicate<String> notExcluded = path ->
+            excludes.stream().noneMatch(path::contains);
+
+        // Apply exclusion filter to all sets
+        added = added.stream().filter(notExcluded).collect(Collectors.toSet());
+        removed = removed.stream().filter(notExcluded).collect(Collectors.toSet());
+        modified = modified.stream().filter(notExcluded).collect(Collectors.toSet());
     }
+
+    // Add results to filesModified if needed, or process as required
+    filesModified.addAll(added);
+    filesModified.addAll(removed);
+    filesModified.addAll(modified);
+
+    return filesModified;
