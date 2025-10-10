@@ -1,5 +1,4 @@
- // Compute added, removed, modified sets by path
-    Set<String> added = new HashSet<>(shaInTag2.keySet());
+Set<String> added = new HashSet<>(shaInTag2.keySet());
     added.removeAll(shaInTag1.keySet());
     Set<String> removed = new HashSet<>(shaInTag1.keySet());
     removed.removeAll(shaInTag2.keySet());
@@ -8,40 +7,44 @@
         .filter(p -> !Objects.equals(shaInTag1.get(p), shaInTag2.get(p)))
         .collect(Collectors.toSet());
 
-    // Recreate your GitLab-style path treatment
-    for (String path : added) {
-        if (path.contains("Packages")) {
-            // Skip, do nothing (exclude entirely)
-        } else if (path.contains("Grants")) {
-            filesModified.add(path);
-        } else {
-            // mimic substring(19) logic if needed; careful with short paths
-            filesModified.add(path.length() > 19 ? path.substring(19) : path);
-        }
-
-        // Files added
-        if (filesAdded != null) {
-            if (path.length() > 19) {
-                filesAdded.add(String.valueOf(path.substring(19)));
-            } else {
-                filesAdded.add(String.valueOf(path));
+    // Prepare excludedFolders predicate
+    Predicate<String> notExcluded = path -> {
+        if (excludedFolders != null) {
+            for (String folder : excludedFolders) {
+                if (path.contains(folder)) return false;
             }
         }
-    }
+        return true;
+    };
 
-    for (String path : modified) {
+    // Process (added, removed, modified) with all exclusion logic
+    for (String path : added) {
+        if (!notExcluded.test(path)) continue; // Apply excludedFolders filter
         if (path.contains("Packages")) {
-            // Do nothing
+            // Skip, do nothing
+        } else if (path.contains("Grants")) {
+            filesModified.add(path);
+        } else {
+            filesModified.add(path.length() > 19 ? path.substring(19) : path);
+        }
+        if (filesAdded != null) {
+            filesAdded.add(path.length() > 19 ? path.substring(19) : path);
+        }
+    }
+    for (String path : modified) {
+        if (!notExcluded.test(path)) continue;
+        if (path.contains("Packages")) {
+            // Skip
         } else if (path.contains("Grants")) {
             filesModified.add(path);
         } else {
             filesModified.add(path.length() > 19 ? path.substring(19) : path);
         }
     }
-
     for (String path : removed) {
+        if (!notExcluded.test(path)) continue;
         if (path.contains("Packages")) {
-            // Do nothing
+            // Skip
         } else if (path.contains("Grants")) {
             filesModified.add(path);
         } else {
