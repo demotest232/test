@@ -1,9 +1,8 @@
-String decodedContent = content.getContent();
-                        byte[] bytes = decodedContent.getBytes(StandardCharsets.UTF_8);
-
-                        File outputFile = new File(location + File.separator + content.getPath());
-                        outputFile.getParentFile().mkdirs();
-
-                        try (OutputStream os = new FileOutputStream(outputFile, false)) {
-                            os.write(bytes);
-                        }
+int dmIndex = path.indexOf("/DM/") + 4;
+    int nextSlash = path.indexOf("/", dmIndex);
+    String requestNbr;
+    if (nextSlash != -1) {
+        requestNbr = path.substring(dmIndex, nextSlash);
+    } else {
+        requestNbr = path.substring(dmIndex); // till end if no more "/"
+    }
