@@ -1,25 +1,25 @@
- // Detect rename/move: files with same SHA but different path
-    Map<String, Set<String>> shaToPathsTag1 = new HashMap<>();
-    for (Map.Entry<String, String> entry : shaInTag1.entrySet()) {
-        shaToPathsTag1.computeIfAbsent(entry.getValue(), k -> new HashSet<>()).add(entry.getKey());
-    }
-    Map<String, Set<String>> shaToPathsTag2 = new HashMap<>();
-    for (Map.Entry<String, String> entry : shaInTag2.entrySet()) {
-        shaToPathsTag2.computeIfAbsent(entry.getValue(), k -> new HashSet<>()).add(entry.getKey());
-    }
+Set<String> added = new HashSet<>(shaInTag2.keySet());
+added.removeAll(shaInTag1.keySet());
 
-    // For SHAs existing in both, check if paths differ – potential rename/move
-    for (String sha : shaToPathsTag1.keySet()) {
-        if (shaToPathsTag2.containsKey(sha)) {
-            Set<String> paths1 = shaToPathsTag1.get(sha);
-            Set<String> paths2 = shaToPathsTag2.get(sha);
-            if (!paths1.equals(paths2)) {
-                // Add all different paths in tag2 that don't exist in tag1 to modified
-                for (String path2 : paths2) {
-                    if (!paths1.contains(path2)) {
-                        modified.add(path2);
-                    }
-                }
+// Add paths for SHA in tag2 but absent in tag1 paths (renamed/moved files)
+Map<String, Set<String>> shaToPathsTag1 = new HashMap<>();
+for (Map.Entry<String, String> e : shaInTag1.entrySet()) {
+    shaToPathsTag1.computeIfAbsent(e.getValue(), k -> new HashSet<>()).add(e.getKey());
+}
+Map<String, Set<String>> shaToPathsTag2 = new HashMap<>();
+for (Map.Entry<String, String> e : shaInTag2.entrySet()) {
+    shaToPathsTag2.computeIfAbsent(e.getValue(), k -> new HashSet<>()).add(e.getKey());
+}
+
+for (String sha : shaToPathsTag2.keySet()) {
+    if (shaToPathsTag1.containsKey(sha)) {
+        Set<String> paths1 = shaToPathsTag1.get(sha);
+        Set<String> paths2 = shaToPathsTag2.get(sha);
+        for (String path2 : paths2) {
+            if (!paths1.contains(path2)) {
+                // new path for existing SHA = treat as added (rename/move)
+                added.add(path2);
             }
         }
     }
+}
