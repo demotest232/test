@@ -1,53 +1,25 @@
-Set<String> added = new HashSet<>(shaInTag2.keySet());
-    added.removeAll(shaInTag1.keySet());
-    Set<String> removed = new HashSet<>(shaInTag1.keySet());
-    removed.removeAll(shaInTag2.keySet());
-    Set<String> modified = shaInTag1.keySet().stream()
-        .filter(shaInTag2::containsKey)
-        .filter(p -> !Objects.equals(shaInTag1.get(p), shaInTag2.get(p)))
-        .collect(Collectors.toSet());
+ // Detect rename/move: files with same SHA but different path
+    Map<String, Set<String>> shaToPathsTag1 = new HashMap<>();
+    for (Map.Entry<String, String> entry : shaInTag1.entrySet()) {
+        shaToPathsTag1.computeIfAbsent(entry.getValue(), k -> new HashSet<>()).add(entry.getKey());
+    }
+    Map<String, Set<String>> shaToPathsTag2 = new HashMap<>();
+    for (Map.Entry<String, String> entry : shaInTag2.entrySet()) {
+        shaToPathsTag2.computeIfAbsent(entry.getValue(), k -> new HashSet<>()).add(entry.getKey());
+    }
 
-    // Prepare excludedFolders predicate
-    Predicate<String> notExcluded = path -> {
-        if (excludedFolders != null) {
-            for (String folder : excludedFolders) {
-                if (path.contains(folder)) return false;
+    // For SHAs existing in both, check if paths differ – potential rename/move
+    for (String sha : shaToPathsTag1.keySet()) {
+        if (shaToPathsTag2.containsKey(sha)) {
+            Set<String> paths1 = shaToPathsTag1.get(sha);
+            Set<String> paths2 = shaToPathsTag2.get(sha);
+            if (!paths1.equals(paths2)) {
+                // Add all different paths in tag2 that don't exist in tag1 to modified
+                for (String path2 : paths2) {
+                    if (!paths1.contains(path2)) {
+                        modified.add(path2);
+                    }
+                }
             }
-        }
-        return true;
-    };
-
-    // Process (added, removed, modified) with all exclusion logic
-    for (String path : added) {
-        if (!notExcluded.test(path)) continue; // Apply excludedFolders filter
-        if (path.contains("Packages")) {
-            // Skip, do nothing
-        } else if (path.contains("Grants")) {
-            filesModified.add(path);
-        } else {
-            filesModified.add(path.length() > 19 ? path.substring(19) : path);
-        }
-        if (filesAdded != null) {
-            filesAdded.add(path.length() > 19 ? path.substring(19) : path);
-        }
-    }
-    for (String path : modified) {
-        if (!notExcluded.test(path)) continue;
-        if (path.contains("Packages")) {
-            // Skip
-        } else if (path.contains("Grants")) {
-            filesModified.add(path);
-        } else {
-            filesModified.add(path.length() > 19 ? path.substring(19) : path);
-        }
-    }
-    for (String path : removed) {
-        if (!notExcluded.test(path)) continue;
-        if (path.contains("Packages")) {
-            // Skip
-        } else if (path.contains("Grants")) {
-            filesModified.add(path);
-        } else {
-            filesModified.add(path.length() > 19 ? path.substring(19) : path);
         }
     }
