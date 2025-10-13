@@ -1,28 +1,10 @@
-// Map SHAs to paths for both tags
-Map<String, Set<String>> shaToPathsTag1 = new HashMap<>();
-for (Map.Entry<String, String> e : shaInTag1.entrySet()) {
-    shaToPathsTag1.computeIfAbsent(e.getValue(), k -> new HashSet<>()).add(e.getKey());
-}
-Map<String, Set<String>> shaToPathsTag2 = new HashMap<>();
-for (Map.Entry<String, String> e : shaInTag2.entrySet()) {
-    shaToPathsTag2.computeIfAbsent(e.getValue(), k -> new HashSet<>()).add(e.getKey());
-}
-
-// 1. Path-based modifications (existing logic)
-Set<String> modified = shaInTag1.keySet().stream()
-    .filter(shaInTag2::containsKey)
-    .filter(p -> !Objects.equals(shaInTag1.get(p), shaInTag2.get(p)))
-    .collect(Collectors.toSet());
-
-// 2. Also consider moves/renames (same SHA, different path)
-for (String sha : shaToPathsTag1.keySet()) {
-    if (shaToPathsTag2.containsKey(sha)) {
-        Set<String> pathsInTag1 = shaToPathsTag1.get(sha);
-        Set<String> pathsInTag2 = shaToPathsTag2.get(sha);
-        for (String newPath : pathsInTag2) {
-            if (!pathsInTag1.contains(newPath)) {
-                modified.add(newPath); // treat as modified (rename/move)
-            }
-        }
+@Bean
+    public PlatformTransactionManager transactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
     }
-}
+
+
+public PmpBatchConfigurer(DataSource dataSource, PlatformTransactionManager transactionManager) {
+        this.dataSource = dataSource;
+        this.transactionManager = transactionManager;
+    }
