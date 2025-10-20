@@ -1,10 +1,72 @@
-@Bean
-    public PlatformTransactionManager transactionManager(DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.sql.Connection;
+
+import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
+
+public class RequestDetailServiceImplTest {
+
+    @Mock
+    private RequestDetailConfiguration configuration;
+
+    @Mock
+    private ConnectionHolderImpl connectionHolder;
+
+    @Mock
+    private RequestDetailDAO requestDetailDAO;
+
+    @Mock
+    private Connection jdbcConnection;
+
+    @Mock
+    private RequestDetail requestDetail;
+
+    private RequestDetailServiceImpl service;
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+
+        // Create a partial mock so we can override internal behavior
+        service = spy(new RequestDetailServiceImpl(configuration));
+
+        // Inject mocks manually (if fields are private final, use reflection)
+        doReturn(connectionHolder).when(service).getConfiguredDao(any());
     }
 
+    @Test
+    public void testSubmitRequest_ShouldCallSubmitAndResetConnection() throws Exception {
+        // Arrange
+        Long expectedId = 100L;
+        doReturn(expectedId).when(service).submit(requestDetail);
 
-public PmpBatchConfigurer(DataSource dataSource, PlatformTransactionManager transactionManager) {
-        this.dataSource = dataSource;
-        this.transactionManager = transactionManager;
+        // Act
+        Long actualId = service.submitRequest(requestDetail, jdbcConnection);
+
+        // Assert
+        assertEquals(expectedId, actualId);
+
+        // Verify connection management
+        verify(connectionHolder).setConnection(jdbcConnection);
+        verify(connectionHolder).resetConnection();
+
+        // Verify business logic
+        verify(service).submit(requestDetail);
     }
+
+    @Test(expected = OperationServiceException.class)
+    public void testSubmitRequest_WhenSubmitThrows_ShouldStillResetConnection() throws Exception {
+        doThrow(new OperationServiceException("DB error")).when(service).submit(requestDetail);
+
+        try {
+            service.submitRequest(requestDetail, jdbcConnection);
+        } finally {
+            verify(connectionHolder).setConnection(jdbcConnection);
+            verify(connectionHolder).resetConnection(); // must always be called
+        }
+    }
+}
