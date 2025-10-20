@@ -1,72 +1,51 @@
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.sql.Connection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class RequestDetailServiceImplTest {
-
-    @Mock
-    private RequestDetailConfiguration configuration;
+class GetGridDataHandlerTest {
 
     @Mock
-    private ConnectionHolderImpl connectionHolder;
+    private ExtendedObjectFactory xmlFactory;
 
     @Mock
-    private RequestDetailDAO requestDetailDAO;
+    private GridDataFactory<?> gridDataFactory;
 
-    @Mock
-    private Connection jdbcConnection;
+    @InjectMocks
+    private GetGridDataHandler handler;
 
-    @Mock
-    private RequestDetail requestDetail;
+    private Map<String, GridDataFactory<?>> gridDataFactories;
 
-    private RequestDetailServiceImpl service;
-
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        // Create a partial mock so we can override internal behavior
-        service = spy(new RequestDetailServiceImpl(configuration));
-
-        // Inject mocks manually (if fields are private final, use reflection)
-        doReturn(connectionHolder).when(service).getConfiguredDao(any());
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        gridDataFactories = new HashMap<>();
+        gridDataFactories.put("TestCriterion", gridDataFactory);
+        handler.gridDataFactories = gridDataFactories;
     }
 
     @Test
-    public void testSubmitRequest_ShouldCallSubmitAndResetConnection() throws Exception {
-        // Arrange
-        Long expectedId = 100L;
-        doReturn(expectedId).when(service).submit(requestDetail);
+    void testExecuteCommand() {
+        // Arrange: create mock GenericCommand and XmlGetGridDataCommand
+        GenericCommand mockXmlValue = mock(GenericCommand.class);
+        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
 
-        // Act
-        Long actualId = service.submitRequest(requestDetail, jdbcConnection);
+        when(mockXmlValue.getClass()).thenReturn(GenericCommand.class);
+        when(mockCommand.getGridCriteria()).thenReturn(List.of("TestCriterion"));
+        when(gridDataFactory.getGridName()).thenReturn("TestGrid");
 
-        // Assert
-        assertEquals(expectedId, actualId);
+        // Act: Call the method under test
+        XmlGridDataCommand result = handler.executeCommand(mockXmlValue);
 
-        // Verify connection management
-        verify(connectionHolder).setConnection(jdbcConnection);
-        verify(connectionHolder).resetConnection();
-
-        // Verify business logic
-        verify(service).submit(requestDetail);
-    }
-
-    @Test(expected = OperationServiceException.class)
-    public void testSubmitRequest_WhenSubmitThrows_ShouldStillResetConnection() throws Exception {
-        doThrow(new OperationServiceException("DB error")).when(service).submit(requestDetail);
-
-        try {
-            service.submitRequest(requestDetail, jdbcConnection);
-        } finally {
-            verify(connectionHolder).setConnection(jdbcConnection);
-            verify(connectionHolder).resetConnection(); // must always be called
-        }
+        // Assert: Verify expected behavior/outputs
+        assertNotNull(result);
+        verify(gridDataFactory, times(1)).getGridName();
     }
 }
