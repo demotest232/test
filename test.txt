@@ -1,51 +1,48 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-class GetGridDataHandlerTest {
+@Mock
+    ConnectionHolder connectionHolder;
 
     @Mock
-    private ExtendedObjectFactory xmlFactory;
+    Connection connection;
 
     @Mock
-    private GridDataFactory<?> gridDataFactory;
+    PreparedStatement preparedStatement;
 
     @InjectMocks
-    private GetGridDataHandler handler;
+    AuditEventPropertyDAOImpl daoImpl;
 
-    private Map<String, GridDataFactory<?>> gridDataFactories;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        gridDataFactories = new HashMap<>();
-        gridDataFactories.put("TestCriterion", gridDataFactory);
-        handler.gridDataFactories = gridDataFactories;
+    // Helper for setting private field via reflection if needed
+    static void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     @Test
-    void testExecuteCommand() {
-        // Arrange: create mock GenericCommand and XmlGetGridDataCommand
-        GenericCommand mockXmlValue = mock(GenericCommand.class);
-        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
+    void testInsert() throws Exception {
+        // Arrange: create and populate AuditEventProperty
+        AuditEventProperty property = new AuditEventProperty("TestName", "TestValue");
+        property.setAuditEventId(12345L);
 
-        when(mockXmlValue.getClass()).thenReturn(GenericCommand.class);
-        when(mockCommand.getGridCriteria()).thenReturn(List.of("TestCriterion"));
-        when(gridDataFactory.getGridName()).thenReturn("TestGrid");
+        // Mock DB API
+        when(connectionHolder.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
 
-        // Act: Call the method under test
-        XmlGridDataCommand result = handler.executeCommand(mockXmlValue);
+        // If propertyId is assigned by sequence generator, mock/stub as needed
+        // For demonstration, assume insert method creates/generates propertyId
+        // setPrivateField(property, "propertyId", 999L);
 
-        // Assert: Verify expected behavior/outputs
-        assertNotNull(result);
-        verify(gridDataFactory, times(1)).getGridName();
+        // Act
+        Long id = daoImpl.insert(property);
+
+        // Assert that correct JDBC methods are called with the right arguments
+        verify(preparedStatement).setLong(eq(1), anyLong());
+        verify(preparedStatement).setLong(eq(2), eq(12345L));
+        verify(preparedStatement).setString(eq(3), eq("TestName"));
+        verify(preparedStatement).setString(eq(4), eq("TestValue"));
+        verify(preparedStatement).setString(eq(5), anyString());
+        verify(preparedStatement).executeUpdate();
+        verify(preparedStatement).close();
+
+        // Assert returned id is not null (or according to your logic)
+        assertNotNull(id);
     }
-}
