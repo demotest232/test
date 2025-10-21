@@ -1,45 +1,39 @@
 @Test
-void testStoreEvent() throws Exception {
-    AuditTrailConfiguration config = new AuditTrailConfiguration("AUDIT_TABLE", "AUDIT_PROP_TABLE", "AUDIT_SEQ");
-    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
-
-    // Mock dependencies
-    AuditEvent auditEvent = mock(AuditEvent.class);
-    Connection jdbcConnection = mock(Connection.class);
-    ConnectionHolderImpl connectionHolder = mock(ConnectionHolderImpl.class);
+void testLogEventSQLExceptionBranch() throws Exception {
     AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
+    AuditEvent auditEvent = mock(AuditEvent.class);
+    when(auditEvent.getId()).thenReturn(null);
 
-    // Inject mocked connectionHolder and DAO, since these are private final fields
-    Field connField = storage.getClass().getDeclaredField("connection");
-    connField.setAccessible(true);
-    connField.set(storage, connectionHolder);
+    when(auditEventDAO.insert(auditEvent)).thenThrow(new SQLException("sql fail"));
+
+    AuditTrailConfiguration config = new AuditTrailConfiguration("TABLENAME","PROPTABLE","SEQNAME");
+    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
 
     Field daoField = storage.getClass().getDeclaredField("auditEventDAO");
     daoField.setAccessible(true);
     daoField.set(storage, auditEventDAO);
 
-    doNothing().when(connectionHolder).setConnection(jdbcConnection);
-    doNothing().when(connectionHolder).resetConnection();
+    Exception ex = assertThrows(OperationServiceException.class,
+        () -> invokeLogEvent(storage, auditEvent));
+    assertTrue(ex.getMessage().contains("sql fail"));
+}
 
-    // When auditEvent.getId() returns null, triggers insert
+@Test
+void testLogEventRuntimeExceptionBranch() throws Exception {
+    AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
+    AuditEvent auditEvent = mock(AuditEvent.class);
     when(auditEvent.getId()).thenReturn(null);
-    when(auditEventDAO.insert(auditEvent)).thenReturn(999L);
 
-    // Act
-    Long result = storage.storeEvent(auditEvent, jdbcConnection);
+    when(auditEventDAO.insert(auditEvent)).thenThrow(new RuntimeException("runtime fail"));
 
-    // Assert
-    verify(connectionHolder).setConnection(jdbcConnection);
-    verify(connectionHolder).resetConnection();
-    verify(auditEventDAO).insert(auditEvent);
-    assertEquals(999L, result);
+    AuditTrailConfiguration config = new AuditTrailConfiguration("TABLENAME","PROPTABLE","SEQNAME");
+    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
 
-    // Also test branch when update is called
-    reset(auditEventDAO);
-    when(auditEvent.getId()).thenReturn(888L);
-    when(auditEventDAO.update(auditEvent)).thenReturn(888L);
+    Field daoField = storage.getClass().getDeclaredField("auditEventDAO");
+    daoField.setAccessible(true);
+    daoField.set(storage, auditEventDAO);
 
-    Long updateResult = storage.storeEvent(auditEvent, jdbcConnection);
-    verify(auditEventDAO).update(auditEvent);
-    assertEquals(888L, updateResult);
+    Exception ex = assertThrows(OperationServiceException.class,
+        () -> invokeLogEvent(storage, auditEvent));
+    assertTrue(ex.getMessage().contains("runtime fail"));
 }
