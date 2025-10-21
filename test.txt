@@ -1,38 +1,38 @@
- @Test
-    void testFetchPropertiesByAuditEventIdReturnsList() throws Exception {
-        daoImpl.setTableName("audit_event_property");
-        when(connectionHolder.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+@Test
+    void testEqualsAndHashCode() {
+        AuditEventProperty a = new AuditEventProperty("Name", "Value");
+        AuditEventProperty b = new AuditEventProperty("Name", "Value");
+        AuditEventProperty c = new AuditEventProperty("Other", "Value");
 
-        // Simulate two rows in result
-        when(resultSet.next()).thenReturn(true, true, false);
-        when(resultSet.getLong("propertyId")).thenReturn(101L, 102L);
-        when(resultSet.getLong("auditEventId")).thenReturn(123L, 124L);
-        when(resultSet.getString("propertyName")).thenReturn("A", "B");
-        when(resultSet.getString("propertyValue")).thenReturn("V1", "V2");
+        // Reflexive
+        assertTrue(a.equals(a));
+        // Symmetric & consistent
+        assertTrue(a.equals(b));
+        assertTrue(b.equals(a));
+        // Transitive: a==b, b==a
+        // Negative case
+        assertFalse(a.equals(c));
+        // hashCode contract
+        assertEquals(a.hashCode(), b.hashCode());
+        // Different properties for hashCode
+        assertNotEquals(a.hashCode(), c.hashCode());
 
-        // Stub createAuditEventProperty(ResultSet) if needed, or let DAO handle it
-
-        List<AuditEventProperty> result = daoImpl.fetchPropertiesByAuditEventId(123L);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertEquals("A", result.get(0).getPropertyName());
-        assertEquals("B", result.get(1).getPropertyName());
+        // Null safe
+        assertFalse(a.equals(null));
+        // Different type
+        assertFalse(a.equals("string"));
     }
 
     @Test
-    void testFetchPropertiesByAuditEventIdReturnsEmpty() throws Exception {
-        daoImpl.setTableName("audit_event_property");
-        when(connectionHolder.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+    void testGettersAndSetters() {
+        AuditEventProperty prop = new AuditEventProperty();
+        prop.setId(10L);
+        prop.setAuditEventId(100L);
+        prop.setPropertyName("testName");
+        prop.setPropertyValue("testValue");
 
-        when(resultSet.next()).thenReturn(false);  // no rows
-
-        List<AuditEventProperty> result = daoImpl.fetchPropertiesByAuditEventId(999L);
-
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(10L, prop.getId());
+        assertEquals(100L, prop.getAuditEventId());
+        assertEquals("testName", prop.getPropertyName());
+        assertEquals("testValue", prop.getPropertyValue());
     }
