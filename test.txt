@@ -1,99 +1,67 @@
- @Test
-    void testEqualsReflexive() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        assertTrue(a.equals(a));
+ @Mock
+    AuditTrailConfiguration auditTrailConfiguration;
+    @Mock
+    ConnectionHolderImpl connectionHolder;
+    @Mock
+    AuditEventDAO auditEventDAO;
+    @Mock
+    Connection jdbcConnection;
+    @Mock
+    AuditEvent auditEvent;
+
+    @Test
+    void testGetAuditTrailConfigurationReturnsConfig() {
+        AuditEventStorageImpl storage = new AuditEventStorageImpl(auditTrailConfiguration);
+        assertEquals(auditTrailConfiguration, storage.getAuditTrailConfiguration());
     }
 
     @Test
-    void testEqualsNullAndType() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        assertFalse(a.equals(null));           // obj == null
-        assertFalse(a.equals("string"));       // wrong type
+    void testStoreEventConnectionAndLogEventCalled() throws Exception {
+        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
+        doReturn(connectionHolder).when(storage).getConnectionHolder();
+        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
+        doReturn(999L).when(storage).logEvent(any());
+
+        // Setup auditEvent
+        when(auditEvent.getId()).thenReturn(123L);
+
+        // Override the connection holder's set/reset behavior
+        doNothing().when(connectionHolder).setConnection(jdbcConnection);
+        doNothing().when(connectionHolder).resetConnection();
+
+        Long result = storage.storeEvent(auditEvent, jdbcConnection);
+
+        // Verify sequence
+        verify(connectionHolder).setConnection(jdbcConnection);
+        verify(connectionHolder).resetConnection();
+        verify(storage).logEvent(auditEvent);
+        assertEquals(999L, result);
     }
 
     @Test
-    void testEqualsSameValues() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        AuditEventProperty b = new AuditEventProperty("A", "V");
-        assertTrue(a.equals(b));
-        assertTrue(b.equals(a));
+    void testLogEventInsertsWhenIdIsNull() throws Exception {
+        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
+        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
+
+        // AuditEvent setup for create
+        when(auditEvent.getId()).thenReturn(null);
+        when(auditEventDAO.insert(auditEvent)).thenReturn(100L);
+
+        Long result = storage.logEvent(auditEvent);
+        verify(auditEventDAO).insert(auditEvent);
+        assertEquals(100L, result);
     }
 
     @Test
-    void testEqualsPropertyNameNullOtherNonNull() {
-        AuditEventProperty a = new AuditEventProperty(null, "V");
-        AuditEventProperty b = new AuditEventProperty("B", "V");
-        assertFalse(a.equals(b)); // propertyName == null && other.propertyName != null
-    }
+    void testLogEventUpdatesWhenIdIsPresent() throws Exception {
+        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
+        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
 
-    @Test
-    void testEqualsPropertyNameNonNullOtherNull() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        AuditEventProperty b = new AuditEventProperty(null, "V");
-        assertFalse(a.equals(b)); // propertyName != null && other.propertyName == null
-    }
+        // AuditEvent setup for update
+        when(auditEvent.getId()).thenReturn(101L);
+        when(auditEventDAO.update(auditEvent)).thenReturn(101L);
 
-    @Test
-    void testEqualsPropertyNameBothNull() {
-        AuditEventProperty a = new AuditEventProperty(null, "V");
-        AuditEventProperty b = new AuditEventProperty(null, "V");
-        assertTrue(a.equals(b)); // propertyName == null && other.propertyName == null
-    }
-
-    @Test
-    void testEqualsPropertyNameNonEqual() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        AuditEventProperty b = new AuditEventProperty("B", "V");
-        assertFalse(a.equals(b)); // propertyName not equal
-    }
-
-    @Test
-    void testEqualsPropertyValueNullOtherNonNull() {
-        AuditEventProperty a = new AuditEventProperty("A", null);
-        AuditEventProperty b = new AuditEventProperty("A", "V2");
-        assertFalse(a.equals(b)); // propertyValue == null && other.propertyValue != null
-    }
-
-    @Test
-    void testEqualsPropertyValueNonNullOtherNull() {
-        AuditEventProperty a = new AuditEventProperty("A", "V1");
-        AuditEventProperty b = new AuditEventProperty("A", null);
-        assertFalse(a.equals(b)); // propertyValue != null && other.propertyValue == null
-    }
-
-    @Test
-    void testEqualsPropertyValueBothNull() {
-        AuditEventProperty a = new AuditEventProperty("A", null);
-        AuditEventProperty b = new AuditEventProperty("A", null);
-        assertTrue(a.equals(b)); // propertyValue == null && other.propertyValue == null
-    }
-
-    @Test
-    void testEqualsPropertyValueNonEqual() {
-        AuditEventProperty a = new AuditEventProperty("A", "V1");
-        AuditEventProperty b = new AuditEventProperty("A", "V2");
-        assertFalse(a.equals(b)); // propertyValue not equal
-    }
-
-    @Test
-    void testHashCodeEqualsContract() {
-        AuditEventProperty a = new AuditEventProperty("A", "V");
-        AuditEventProperty b = new AuditEventProperty("A", "V");
-        assertEquals(a.hashCode(), b.hashCode());
-
-        AuditEventProperty c = new AuditEventProperty("A", "X");
-        assertNotEquals(a.hashCode(), c.hashCode());
-    }
-
-    @Test
-    void testGettersAndSetters() {
-        AuditEventProperty prop = new AuditEventProperty();
-        prop.setId(100L);
-        prop.setAuditEventId(200L);
-        prop.setPropertyName("PN");
-        prop.setPropertyValue("PV");
-        assertEquals(100L, prop.getId());
-        assertEquals(200L, prop.getAuditEventId());
-        assertEquals("PN", prop.getPropertyName());
-        assertEquals("PV", prop.getPropertyValue());
+        Long result = storage.logEvent(auditEvent);
+        verify(auditEventDAO).update(auditEvent);
+        assertEquals(101L, result);
     }
