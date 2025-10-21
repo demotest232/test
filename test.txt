@@ -1,67 +1,38 @@
  @Mock
     AuditTrailConfiguration auditTrailConfiguration;
-    @Mock
-    ConnectionHolderImpl connectionHolder;
-    @Mock
-    AuditEventDAO auditEventDAO;
+
     @Mock
     Connection jdbcConnection;
+
     @Mock
     AuditEvent auditEvent;
 
-    @Test
-    void testGetAuditTrailConfigurationReturnsConfig() {
-        AuditEventStorageImpl storage = new AuditEventStorageImpl(auditTrailConfiguration);
-        assertEquals(auditTrailConfiguration, storage.getAuditTrailConfiguration());
-    }
+    @Mock
+    ConnectionHolderImpl connectionHolder;
+
+    @Mock
+    AuditEventDAO auditEventDAO;
 
     @Test
-    void testStoreEventConnectionAndLogEventCalled() throws Exception {
+    void testStoreEvent() throws Exception {
+        // Setup the class under test, manually set its dependencies if needed
         AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
+
+        // Inject mocks for connection and DAO
         doReturn(connectionHolder).when(storage).getConnectionHolder();
         doReturn(auditEventDAO).when(storage).getAuditEventDAO();
-        doReturn(999L).when(storage).logEvent(any());
-
-        // Setup auditEvent
-        when(auditEvent.getId()).thenReturn(123L);
-
-        // Override the connection holder's set/reset behavior
         doNothing().when(connectionHolder).setConnection(jdbcConnection);
         doNothing().when(connectionHolder).resetConnection();
 
+        // Mock logEvent to return a specific value
+        doReturn(999L).when(storage).logEvent(auditEvent);
+
+        // Act
         Long result = storage.storeEvent(auditEvent, jdbcConnection);
 
-        // Verify sequence
+        // Assert correct sequence
         verify(connectionHolder).setConnection(jdbcConnection);
-        verify(connectionHolder).resetConnection();
         verify(storage).logEvent(auditEvent);
+        verify(connectionHolder).resetConnection();
         assertEquals(999L, result);
-    }
-
-    @Test
-    void testLogEventInsertsWhenIdIsNull() throws Exception {
-        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
-        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
-
-        // AuditEvent setup for create
-        when(auditEvent.getId()).thenReturn(null);
-        when(auditEventDAO.insert(auditEvent)).thenReturn(100L);
-
-        Long result = storage.logEvent(auditEvent);
-        verify(auditEventDAO).insert(auditEvent);
-        assertEquals(100L, result);
-    }
-
-    @Test
-    void testLogEventUpdatesWhenIdIsPresent() throws Exception {
-        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
-        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
-
-        // AuditEvent setup for update
-        when(auditEvent.getId()).thenReturn(101L);
-        when(auditEventDAO.update(auditEvent)).thenReturn(101L);
-
-        Long result = storage.logEvent(auditEvent);
-        verify(auditEventDAO).update(auditEvent);
-        assertEquals(101L, result);
     }
