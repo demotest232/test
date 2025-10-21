@@ -1,7 +1,38 @@
  @Test
-    void testUpdateThrowsException() {
-        AuditEventPropertyDAOImpl daoImpl = new AuditEventPropertyDAOImpl(null);
+    void testLoadReturnsEntity() throws Exception {
+        // Arrange
+        daoImpl.setTableName("audit_event_property");
+        when(connectionHolder.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
 
-        AuditEventProperty dummy = new AuditEventProperty("name", "value");
-        assertThrows(UnsupportedOperationException.class, () -> daoImpl.update(dummy));
+        when(resultSet.next()).thenReturn(true, false); // one row, then end
+        // You may need to stub your createAuditEventProperty(resultSet) logic —
+        // for now, stub expected getters for fields as required by that method.
+        when(resultSet.getLong("propertyId")).thenReturn(100L);
+        when(resultSet.getLong("auditEventId")).thenReturn(12345L);
+        when(resultSet.getString("propertyName")).thenReturn("name");
+        when(resultSet.getString("propertyValue")).thenReturn("value");
+
+        // Act
+        AuditEventProperty result = daoImpl.load(100L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(100L, result.getId());
+        assertEquals("name", result.getPropertyName());
+        assertEquals("value", result.getPropertyValue());
+    }
+
+    @Test
+    void testLoadReturnsNullWhenNoRows() throws Exception {
+        daoImpl.setTableName("audit_event_property");
+        when(connectionHolder.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+
+        when(resultSet.next()).thenReturn(false); // no rows
+
+        AuditEventProperty result = daoImpl.load(999L);
+        assertNull(result);
     }
