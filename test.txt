@@ -1,38 +1,99 @@
-@Test
-    void testEqualsAndHashCode() {
-        AuditEventProperty a = new AuditEventProperty("Name", "Value");
-        AuditEventProperty b = new AuditEventProperty("Name", "Value");
-        AuditEventProperty c = new AuditEventProperty("Other", "Value");
-
-        // Reflexive
+ @Test
+    void testEqualsReflexive() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
         assertTrue(a.equals(a));
-        // Symmetric & consistent
+    }
+
+    @Test
+    void testEqualsNullAndType() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
+        assertFalse(a.equals(null));           // obj == null
+        assertFalse(a.equals("string"));       // wrong type
+    }
+
+    @Test
+    void testEqualsSameValues() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
+        AuditEventProperty b = new AuditEventProperty("A", "V");
         assertTrue(a.equals(b));
         assertTrue(b.equals(a));
-        // Transitive: a==b, b==a
-        // Negative case
-        assertFalse(a.equals(c));
-        // hashCode contract
-        assertEquals(a.hashCode(), b.hashCode());
-        // Different properties for hashCode
-        assertNotEquals(a.hashCode(), c.hashCode());
+    }
 
-        // Null safe
-        assertFalse(a.equals(null));
-        // Different type
-        assertFalse(a.equals("string"));
+    @Test
+    void testEqualsPropertyNameNullOtherNonNull() {
+        AuditEventProperty a = new AuditEventProperty(null, "V");
+        AuditEventProperty b = new AuditEventProperty("B", "V");
+        assertFalse(a.equals(b)); // propertyName == null && other.propertyName != null
+    }
+
+    @Test
+    void testEqualsPropertyNameNonNullOtherNull() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
+        AuditEventProperty b = new AuditEventProperty(null, "V");
+        assertFalse(a.equals(b)); // propertyName != null && other.propertyName == null
+    }
+
+    @Test
+    void testEqualsPropertyNameBothNull() {
+        AuditEventProperty a = new AuditEventProperty(null, "V");
+        AuditEventProperty b = new AuditEventProperty(null, "V");
+        assertTrue(a.equals(b)); // propertyName == null && other.propertyName == null
+    }
+
+    @Test
+    void testEqualsPropertyNameNonEqual() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
+        AuditEventProperty b = new AuditEventProperty("B", "V");
+        assertFalse(a.equals(b)); // propertyName not equal
+    }
+
+    @Test
+    void testEqualsPropertyValueNullOtherNonNull() {
+        AuditEventProperty a = new AuditEventProperty("A", null);
+        AuditEventProperty b = new AuditEventProperty("A", "V2");
+        assertFalse(a.equals(b)); // propertyValue == null && other.propertyValue != null
+    }
+
+    @Test
+    void testEqualsPropertyValueNonNullOtherNull() {
+        AuditEventProperty a = new AuditEventProperty("A", "V1");
+        AuditEventProperty b = new AuditEventProperty("A", null);
+        assertFalse(a.equals(b)); // propertyValue != null && other.propertyValue == null
+    }
+
+    @Test
+    void testEqualsPropertyValueBothNull() {
+        AuditEventProperty a = new AuditEventProperty("A", null);
+        AuditEventProperty b = new AuditEventProperty("A", null);
+        assertTrue(a.equals(b)); // propertyValue == null && other.propertyValue == null
+    }
+
+    @Test
+    void testEqualsPropertyValueNonEqual() {
+        AuditEventProperty a = new AuditEventProperty("A", "V1");
+        AuditEventProperty b = new AuditEventProperty("A", "V2");
+        assertFalse(a.equals(b)); // propertyValue not equal
+    }
+
+    @Test
+    void testHashCodeEqualsContract() {
+        AuditEventProperty a = new AuditEventProperty("A", "V");
+        AuditEventProperty b = new AuditEventProperty("A", "V");
+        assertEquals(a.hashCode(), b.hashCode());
+
+        AuditEventProperty c = new AuditEventProperty("A", "X");
+        assertNotEquals(a.hashCode(), c.hashCode());
     }
 
     @Test
     void testGettersAndSetters() {
         AuditEventProperty prop = new AuditEventProperty();
-        prop.setId(10L);
-        prop.setAuditEventId(100L);
-        prop.setPropertyName("testName");
-        prop.setPropertyValue("testValue");
-
-        assertEquals(10L, prop.getId());
-        assertEquals(100L, prop.getAuditEventId());
-        assertEquals("testName", prop.getPropertyName());
-        assertEquals("testValue", prop.getPropertyValue());
+        prop.setId(100L);
+        prop.setAuditEventId(200L);
+        prop.setPropertyName("PN");
+        prop.setPropertyValue("PV");
+        assertEquals(100L, prop.getId());
+        assertEquals(200L, prop.getAuditEventId());
+        assertEquals("PN", prop.getPropertyName());
+        assertEquals("PV", prop.getPropertyValue());
     }
