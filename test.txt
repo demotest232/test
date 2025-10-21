@@ -1,38 +1,38 @@
  @Test
-    void testLoadReturnsEntity() throws Exception {
-        // Arrange
+    void testFetchPropertiesByAuditEventIdReturnsList() throws Exception {
         daoImpl.setTableName("audit_event_property");
         when(connectionHolder.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
 
-        when(resultSet.next()).thenReturn(true, false); // one row, then end
-        // You may need to stub your createAuditEventProperty(resultSet) logic —
-        // for now, stub expected getters for fields as required by that method.
-        when(resultSet.getLong("propertyId")).thenReturn(100L);
-        when(resultSet.getLong("auditEventId")).thenReturn(12345L);
-        when(resultSet.getString("propertyName")).thenReturn("name");
-        when(resultSet.getString("propertyValue")).thenReturn("value");
+        // Simulate two rows in result
+        when(resultSet.next()).thenReturn(true, true, false);
+        when(resultSet.getLong("propertyId")).thenReturn(101L, 102L);
+        when(resultSet.getLong("auditEventId")).thenReturn(123L, 124L);
+        when(resultSet.getString("propertyName")).thenReturn("A", "B");
+        when(resultSet.getString("propertyValue")).thenReturn("V1", "V2");
 
-        // Act
-        AuditEventProperty result = daoImpl.load(100L);
+        // Stub createAuditEventProperty(ResultSet) if needed, or let DAO handle it
 
-        // Assert
+        List<AuditEventProperty> result = daoImpl.fetchPropertiesByAuditEventId(123L);
+
         assertNotNull(result);
-        assertEquals(100L, result.getId());
-        assertEquals("name", result.getPropertyName());
-        assertEquals("value", result.getPropertyValue());
+        assertEquals(2, result.size());
+        assertEquals("A", result.get(0).getPropertyName());
+        assertEquals("B", result.get(1).getPropertyName());
     }
 
     @Test
-    void testLoadReturnsNullWhenNoRows() throws Exception {
+    void testFetchPropertiesByAuditEventIdReturnsEmpty() throws Exception {
         daoImpl.setTableName("audit_event_property");
         when(connectionHolder.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
 
-        when(resultSet.next()).thenReturn(false); // no rows
+        when(resultSet.next()).thenReturn(false);  // no rows
 
-        AuditEventProperty result = daoImpl.load(999L);
-        assertNull(result);
+        List<AuditEventProperty> result = daoImpl.fetchPropertiesByAuditEventId(999L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
