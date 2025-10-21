@@ -1,38 +1,36 @@
- @Mock
-    AuditTrailConfiguration auditTrailConfiguration;
+@Test
+void testStoreEvent() throws Exception {
+    AuditTrailConfiguration config = new AuditTrailConfiguration("AUDIT_TABLE", "AUDIT_PROP_TABLE", "AUDIT_SEQ");
+    AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(config));
+    
+    Connection jdbcConnection = mock(Connection.class);
+    AuditEvent auditEvent = mock(AuditEvent.class);
+    ConnectionHolderImpl connectionHolder = mock(ConnectionHolderImpl.class);
+    AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
+    PreparedStatement preparedStatement = mock(PreparedStatement.class);
+    ResultSet resultSet = mock(ResultSet.class);
 
-    @Mock
-    Connection jdbcConnection;
+    // Set up method stubs for connection holder and DAO
+    doNothing().when(connectionHolder).setConnection(jdbcConnection);
+    doNothing().when(connectionHolder).resetConnection();
 
-    @Mock
-    AuditEvent auditEvent;
+    // For DAO logic inside logEvent, if inserting/updating, mock connection.prepareStatement
+    when(jdbcConnection.prepareStatement(anyString())).thenReturn(preparedStatement);
+    when(preparedStatement.executeUpdate()).thenReturn(1); // for insert/update
+    when(preparedStatement.executeQuery()).thenReturn(resultSet); // for selects
 
-    @Mock
-    ConnectionHolderImpl connectionHolder;
+    // Make sure storage will use your mock DAO (may use reflection if not settable)
+    // Example: Field daoField = storage.getClass().getDeclaredField("auditEventDAO"); daoField.setAccessible(true); daoField.set(storage, auditEventDAO);
 
-    @Mock
-    AuditEventDAO auditEventDAO;
+    // Mock logEvent to avoid actual JDBC if desirable (or fully mock DAO behind it)
+    doReturn(999L).when(storage).logEvent(auditEvent);
 
-    @Test
-    void testStoreEvent() throws Exception {
-        // Setup the class under test, manually set its dependencies if needed
-        AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(auditTrailConfiguration));
+    // Act
+    Long result = storage.storeEvent(auditEvent, jdbcConnection);
 
-        // Inject mocks for connection and DAO
-        doReturn(connectionHolder).when(storage).getConnectionHolder();
-        doReturn(auditEventDAO).when(storage).getAuditEventDAO();
-        doNothing().when(connectionHolder).setConnection(jdbcConnection);
-        doNothing().when(connectionHolder).resetConnection();
-
-        // Mock logEvent to return a specific value
-        doReturn(999L).when(storage).logEvent(auditEvent);
-
-        // Act
-        Long result = storage.storeEvent(auditEvent, jdbcConnection);
-
-        // Assert correct sequence
-        verify(connectionHolder).setConnection(jdbcConnection);
-        verify(storage).logEvent(auditEvent);
-        verify(connectionHolder).resetConnection();
-        assertEquals(999L, result);
-    }
+    // Assert
+    verify(connectionHolder).setConnection(jdbcConnection);
+    verify(connectionHolder).resetConnection();
+    verify(storage).logEvent(auditEvent);
+    assertEquals(999L, result);
+}
