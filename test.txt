@@ -1,48 +1,7 @@
-@Mock
-    ConnectionHolder connectionHolder;
+ @Test
+    void testUpdateThrowsException() {
+        AuditEventPropertyDAOImpl daoImpl = new AuditEventPropertyDAOImpl(null);
 
-    @Mock
-    Connection connection;
-
-    @Mock
-    PreparedStatement preparedStatement;
-
-    @InjectMocks
-    AuditEventPropertyDAOImpl daoImpl;
-
-    // Helper for setting private field via reflection if needed
-    static void setPrivateField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
-
-    @Test
-    void testInsert() throws Exception {
-        // Arrange: create and populate AuditEventProperty
-        AuditEventProperty property = new AuditEventProperty("TestName", "TestValue");
-        property.setAuditEventId(12345L);
-
-        // Mock DB API
-        when(connectionHolder.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
-
-        // If propertyId is assigned by sequence generator, mock/stub as needed
-        // For demonstration, assume insert method creates/generates propertyId
-        // setPrivateField(property, "propertyId", 999L);
-
-        // Act
-        Long id = daoImpl.insert(property);
-
-        // Assert that correct JDBC methods are called with the right arguments
-        verify(preparedStatement).setLong(eq(1), anyLong());
-        verify(preparedStatement).setLong(eq(2), eq(12345L));
-        verify(preparedStatement).setString(eq(3), eq("TestName"));
-        verify(preparedStatement).setString(eq(4), eq("TestValue"));
-        verify(preparedStatement).setString(eq(5), anyString());
-        verify(preparedStatement).executeUpdate();
-        verify(preparedStatement).close();
-
-        // Assert returned id is not null (or according to your logic)
-        assertNotNull(id);
+        AuditEventProperty dummy = new AuditEventProperty("name", "value");
+        assertThrows(UnsupportedOperationException.class, () -> daoImpl.update(dummy));
     }
