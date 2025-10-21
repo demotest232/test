@@ -1,29 +1,29 @@
 @Test
 void testStoreEvent() throws Exception {
     AuditTrailConfiguration config = new AuditTrailConfiguration("AUDIT_TABLE", "AUDIT_PROP_TABLE", "AUDIT_SEQ");
-    AuditEventStorageImpl storage = spy(new AuditEventStorageImpl(config));
-    
-    Connection jdbcConnection = mock(Connection.class);
+    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
+
+    // Mock dependencies
     AuditEvent auditEvent = mock(AuditEvent.class);
+    Connection jdbcConnection = mock(Connection.class);
     ConnectionHolderImpl connectionHolder = mock(ConnectionHolderImpl.class);
     AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
-    PreparedStatement preparedStatement = mock(PreparedStatement.class);
-    ResultSet resultSet = mock(ResultSet.class);
 
-    // Set up method stubs for connection holder and DAO
+    // Inject mocked connectionHolder and DAO, since these are private final fields
+    Field connField = storage.getClass().getDeclaredField("connection");
+    connField.setAccessible(true);
+    connField.set(storage, connectionHolder);
+
+    Field daoField = storage.getClass().getDeclaredField("auditEventDAO");
+    daoField.setAccessible(true);
+    daoField.set(storage, auditEventDAO);
+
     doNothing().when(connectionHolder).setConnection(jdbcConnection);
     doNothing().when(connectionHolder).resetConnection();
 
-    // For DAO logic inside logEvent, if inserting/updating, mock connection.prepareStatement
-    when(jdbcConnection.prepareStatement(anyString())).thenReturn(preparedStatement);
-    when(preparedStatement.executeUpdate()).thenReturn(1); // for insert/update
-    when(preparedStatement.executeQuery()).thenReturn(resultSet); // for selects
-
-    // Make sure storage will use your mock DAO (may use reflection if not settable)
-    // Example: Field daoField = storage.getClass().getDeclaredField("auditEventDAO"); daoField.setAccessible(true); daoField.set(storage, auditEventDAO);
-
-    // Mock logEvent to avoid actual JDBC if desirable (or fully mock DAO behind it)
-    doReturn(999L).when(storage).logEvent(auditEvent);
+    // When auditEvent.getId() returns null, triggers insert
+    when(auditEvent.getId()).thenReturn(null);
+    when(auditEventDAO.insert(auditEvent)).thenReturn(999L);
 
     // Act
     Long result = storage.storeEvent(auditEvent, jdbcConnection);
@@ -31,6 +31,15 @@ void testStoreEvent() throws Exception {
     // Assert
     verify(connectionHolder).setConnection(jdbcConnection);
     verify(connectionHolder).resetConnection();
-    verify(storage).logEvent(auditEvent);
+    verify(auditEventDAO).insert(auditEvent);
     assertEquals(999L, result);
+
+    // Also test branch when update is called
+    reset(auditEventDAO);
+    when(auditEvent.getId()).thenReturn(888L);
+    when(auditEventDAO.update(auditEvent)).thenReturn(888L);
+
+    Long updateResult = storage.storeEvent(auditEvent, jdbcConnection);
+    verify(auditEventDAO).update(auditEvent);
+    assertEquals(888L, updateResult);
 }
