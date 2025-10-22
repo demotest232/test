@@ -1,42 +1,79 @@
-private CompressionFilter filter;
+ private CompressionFilter filter;
     private FilterChain mockChain;
     private ServletResponse mockResponse;
+    private HttpServletResponse mockHttpServletResponse;
+
+
+    public static class DummyCompressionWrapper extends HttpServletResponseWrapper {
+        public boolean closed = false;
+        public DummyCompressionWrapper(HttpServletResponse response) {
+            super(response);
+        }
+        @Override
+        public void close() {
+            closed = true;
+        }
+    }
 
     @BeforeEach
     void setUp() {
-        filter = new CompressionFilter();
+        filter = new CompressionFilter() {
+          
+            @Override
+            protected CompressionServletResponseWrapper createWrapper(HttpServletResponse resp) {
+                return new DummyCompressionWrapper(resp);
+            }
+        };
         mockChain = mock(FilterChain.class);
         mockResponse = mock(ServletResponse.class);
+        mockHttpServletResponse = mock(HttpServletResponse.class);
     }
 
     @Test
-    void testDoFilterWithoutGzipHeader() throws IOException, ServletException {
+    void testNoGzipHeader() throws IOException, ServletException {
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-        Enumeration<String> emptyEnum = Collections.emptyEnumeration();
-        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(emptyEnum);
+        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(Collections.emptyEnumeration());
 
         filter.doFilter(mockRequest, mockResponse, mockChain);
 
-        // Expect filter just passes through (supportsCompression should be false)
         verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
     }
 
     @Test
-    void testDoFilterWithGzipHeader() throws IOException, ServletException {
+    void testWithGzipHeader() throws IOException, ServletException {
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-        Enumeration<String> enumWithGzip = Collections.enumeration(Collections.singletonList("gzip, deflate"));
-        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(enumWithGzip);
+        Enumeration<String> gzipEnum = Collections.enumeration(Collections.singletonList("gzip"));
+        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(gzipEnum);
 
-        filter.doFilter(mockRequest, mockResponse, mockChain);
+     
+        HttpServletResponse realResp = new HttpServletResponseWrapper(mockHttpServletResponse);
 
-        // Expect filter passes through, but supportCompression would be true in filter
-        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+       
+        DummyCompressionWrapper dummyWrapper = spy(new DummyCompressionWrapper(mockHttpServletResponse));
+        CompressionFilter filterWithSpy = new CompressionFilter() {
+            @Override
+            protected CompressionServletResponseWrapper createWrapper(HttpServletResponse resp) {
+                return dummyWrapper;
+            }
+        };
+
+        filterWithSpy.doFilter(mockRequest, realResp, mockChain);
+
+       
+        ArgumentCaptor<ServletResponse> captor = ArgumentCaptor.forClass(ServletResponse.class);
+        verify(mockChain).doFilter(eq(mockRequest), captor.capture());
+        assert(captor.getValue() instanceof DummyCompressionWrapper);
+
+       
+        verify(dummyWrapper, times(1)).close();
     }
 
     @Test
-    void testDoFilterNonHttpServletRequest() throws IOException, ServletException {
+    void testNonHttpInput() throws IOException, ServletException {
         ServletRequest mockRequest = mock(ServletRequest.class);
+        ServletResponse mockResponse = mock(ServletResponse.class);
+
         filter.doFilter(mockRequest, mockResponse, mockChain);
-        // Should simply go through chain, nothing special
+
         verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
     }
