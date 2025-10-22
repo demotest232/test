@@ -1,14 +1,18 @@
 @Test
-void testGzipPath() throws Exception {
-    Enumeration<String> gzipEnum = Collections.enumeration(Collections.singletonList("gzip"));
-    when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(gzipEnum);
+    void testDoFilter_WithGzip_Header() throws IOException, ServletException {
+        Enumeration<String> gzipEnum = Collections.enumeration(Collections.singletonList("gzip"));
+        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(gzipEnum);
 
-    FilterChain capturingChain = (req, res) -> {
-        assertTrue(res instanceof HttpServletResponseWrapper);
-        // Optionally, invoke output stream/writer
-        ((HttpServletResponseWrapper)res).getOutputStream();
-        ((HttpServletResponseWrapper)res).getWriter();
-    };
+        ArgumentCaptor<ServletResponse> responseCaptor = ArgumentCaptor.forClass(ServletResponse.class);
 
-    filter.doFilter(mockRequest, mockResponse, capturingChain);
-}
+        filter.doFilter(mockRequest, mockResponse, mockChain);
+
+        verify(mockChain).doFilter(eq(mockRequest), responseCaptor.capture());
+
+        ServletResponse wrappedResponse = responseCaptor.getValue();
+        assertTrue(wrappedResponse instanceof HttpServletResponseWrapper);
+
+       
+        wrappedResponse.getOutputStream();
+        wrappedResponse.getWriter();
+    }
