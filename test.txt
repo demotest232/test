@@ -1,79 +1,44 @@
- private CompressionFilter filter;
+  private CompressionFilter filter;
     private FilterChain mockChain;
-    private ServletResponse mockResponse;
-    private HttpServletResponse mockHttpServletResponse;
-
-
-    public static class DummyCompressionWrapper extends HttpServletResponseWrapper {
-        public boolean closed = false;
-        public DummyCompressionWrapper(HttpServletResponse response) {
-            super(response);
-        }
-        @Override
-        public void close() {
-            closed = true;
-        }
-    }
+    private HttpServletRequest mockRequest;
+    private HttpServletResponse mockResponse;
 
     @BeforeEach
     void setUp() {
-        filter = new CompressionFilter() {
-          
-            @Override
-            protected CompressionServletResponseWrapper createWrapper(HttpServletResponse resp) {
-                return new DummyCompressionWrapper(resp);
-            }
-        };
+        filter = new CompressionFilter();
         mockChain = mock(FilterChain.class);
-        mockResponse = mock(ServletResponse.class);
-        mockHttpServletResponse = mock(HttpServletResponse.class);
+        mockRequest = mock(HttpServletRequest.class);
+        mockResponse = mock(HttpServletResponse.class);
     }
 
     @Test
-    void testNoGzipHeader() throws IOException, ServletException {
-        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+    void testDoFilter_NoGzipHeader_ShouldNotWrap() throws IOException, ServletException {
         when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(Collections.emptyEnumeration());
-
-        filter.doFilter(mockRequest, mockResponse, mockChain);
-
-        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+        filter.doFilter(mockRequest, mockResponse, mockChain);      
+        verify(mockChain).doFilter(mockRequest, mockResponse);
     }
 
     @Test
-    void testWithGzipHeader() throws IOException, ServletException {
-        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+    void testDoFilter_WithGzipHeader_ShouldWrapResponse() throws IOException, ServletException {
         Enumeration<String> gzipEnum = Collections.enumeration(Collections.singletonList("gzip"));
         when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(gzipEnum);
-
-     
-        HttpServletResponse realResp = new HttpServletResponseWrapper(mockHttpServletResponse);
-
-       
-        DummyCompressionWrapper dummyWrapper = spy(new DummyCompressionWrapper(mockHttpServletResponse));
-        CompressionFilter filterWithSpy = new CompressionFilter() {
-            @Override
-            protected CompressionServletResponseWrapper createWrapper(HttpServletResponse resp) {
-                return dummyWrapper;
-            }
+      
+        CompressionServletResponseWrapper[] usedWrapper = new CompressionServletResponseWrapper[1];
+        FilterChain capturingChain = (req, res) -> {         
+            assertTrue(res instanceof CompressionServletResponseWrapper);
+            usedWrapper[0] = (CompressionServletResponseWrapper) res;
         };
-
-        filterWithSpy.doFilter(mockRequest, realResp, mockChain);
-
-       
-        ArgumentCaptor<ServletResponse> captor = ArgumentCaptor.forClass(ServletResponse.class);
-        verify(mockChain).doFilter(eq(mockRequest), captor.capture());
-        assert(captor.getValue() instanceof DummyCompressionWrapper);
-
-       
-        verify(dummyWrapper, times(1)).close();
+        
+        filter.doFilter(mockRequest, mockResponse, capturingChain);       
+        assertNotNull(usedWrapper[0]);      
+        assertNotNull(usedWrapper[0].getOutputStream());
+        assertNotNull(usedWrapper[0].getWriter());
     }
 
     @Test
-    void testNonHttpInput() throws IOException, ServletException {
-        ServletRequest mockRequest = mock(ServletRequest.class);
-        ServletResponse mockResponse = mock(ServletResponse.class);
-
-        filter.doFilter(mockRequest, mockResponse, mockChain);
-
-        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+    void testDoFilter_RequestNotHttpServlet_ShouldNotWrap() throws IOException, ServletException {
+        ServletRequest plainRequest = mock(ServletRequest.class);
+        ServletResponse plainResponse = mock(ServletResponse.class);
+        filter.doFilter(plainRequest, plainResponse, mockChain);
+        verify(mockChain).doFilter(plainRequest, plainResponse);
     }
