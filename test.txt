@@ -1,34 +1,42 @@
- @Test
-    void testInitSetsHostNameAndConfiguresLogger() {
-        // Mock the static factories
-        try (
-            MockedStatic<HostConfigurationFactory> mockHostFactory = Mockito.mockStatic(HostConfigurationFactory.class);
-            MockedStatic<EnvConfigurationFactory> mockEnvFactory = Mockito.mockStatic(EnvConfigurationFactory.class);
-            MockedStatic<LoggerFactory> mockLoggerFactory = Mockito.mockStatic(LoggerFactory.class)
-        ) {
-            HostConfiguration mockHostConfig = Mockito.mock(HostConfiguration.class);
-            EnvConfiguration mockEnvConfig = Mockito.mock(EnvConfiguration.class);
-            LoggerContext mockContext = Mockito.mock(LoggerContext.class);
+private CompressionFilter filter;
+    private FilterChain mockChain;
+    private ServletResponse mockResponse;
 
-            // Stubbing
-            mockHostFactory.when(HostConfigurationFactory::create).thenReturn(mockHostConfig);
-            Mockito.when(mockHostConfig.getHostName()).thenReturn("test-host");
-            
-            mockEnvFactory.when(() -> EnvConfigurationFactory.create(mockHostConfig)).thenReturn(mockEnvConfig);
-            Mockito.when(mockEnvConfig.getLoggerConfigFile()).thenReturn("testfile.xml");
+    @BeforeEach
+    void setUp() {
+        filter = new CompressionFilter();
+        mockChain = mock(FilterChain.class);
+        mockResponse = mock(ServletResponse.class);
+    }
 
-            mockLoggerFactory.when(LoggerFactory::getILoggerFactory).thenReturn(mockContext);
+    @Test
+    void testDoFilterWithoutGzipHeader() throws IOException, ServletException {
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        Enumeration<String> emptyEnum = Collections.emptyEnumeration();
+        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(emptyEnum);
 
-            JoranConfigurator mockJoranConfigurator = Mockito.mock(JoranConfigurator.class);
-            
-          
-            
-            LogbackStaticConfigurator.init();
+        filter.doFilter(mockRequest, mockResponse, mockChain);
 
-            // Assertions
-            assertEquals("test-host", System.getProperty("hostName"));
-            // You can verify interactions:
-            Mockito.verify(mockContext).reset();
-            Mockito.verify(mockJoranConfigurator).doConfigure("testfile.xml");
-            // Additional verifications as required
-        }
+        // Expect filter just passes through (supportsCompression should be false)
+        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+    }
+
+    @Test
+    void testDoFilterWithGzipHeader() throws IOException, ServletException {
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        Enumeration<String> enumWithGzip = Collections.enumeration(Collections.singletonList("gzip, deflate"));
+        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(enumWithGzip);
+
+        filter.doFilter(mockRequest, mockResponse, mockChain);
+
+        // Expect filter passes through, but supportCompression would be true in filter
+        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+    }
+
+    @Test
+    void testDoFilterNonHttpServletRequest() throws IOException, ServletException {
+        ServletRequest mockRequest = mock(ServletRequest.class);
+        filter.doFilter(mockRequest, mockResponse, mockChain);
+        // Should simply go through chain, nothing special
+        verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+    }
