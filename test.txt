@@ -1,19 +1,34 @@
  @Test
-    void tokenReceived_shouldInjectToken() {
-        // Arrange
-        MockServletContext servletContext = new MockServletContext();
-     
-        WebApplicationContext wac = Mockito.mock(WebApplicationContext.class);
-        AuthTokenConsumer springBean = Mockito.mock(AuthTokenConsumer.class);
-        Mockito.when(wac.getBean(AuthTokenConsumer.class)).thenReturn(springBean);
+    void testInitSetsHostNameAndConfiguresLogger() {
+        // Mock the static factories
+        try (
+            MockedStatic<HostConfigurationFactory> mockHostFactory = Mockito.mockStatic(HostConfigurationFactory.class);
+            MockedStatic<EnvConfigurationFactory> mockEnvFactory = Mockito.mockStatic(EnvConfigurationFactory.class);
+            MockedStatic<LoggerFactory> mockLoggerFactory = Mockito.mockStatic(LoggerFactory.class)
+        ) {
+            HostConfiguration mockHostConfig = Mockito.mock(HostConfiguration.class);
+            EnvConfiguration mockEnvConfig = Mockito.mock(EnvConfiguration.class);
+            LoggerContext mockContext = Mockito.mock(LoggerContext.class);
 
-        servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, wac);
+            // Stubbing
+            mockHostFactory.when(HostConfigurationFactory::create).thenReturn(mockHostConfig);
+            Mockito.when(mockHostConfig.getHostName()).thenReturn("test-host");
+            
+            mockEnvFactory.when(() -> EnvConfigurationFactory.create(mockHostConfig)).thenReturn(mockEnvConfig);
+            Mockito.when(mockEnvConfig.getLoggerConfigFile()).thenReturn("testfile.xml");
 
-        AuthTokenToRequestScope consumer = new AuthTokenToRequestScope(servletContext);
+            mockLoggerFactory.when(LoggerFactory::getILoggerFactory).thenReturn(mockContext);
 
-        // Act
-        consumer.tokenReceived("dummy-token");
+            JoranConfigurator mockJoranConfigurator = Mockito.mock(JoranConfigurator.class);
+            
+          
+            
+            LogbackStaticConfigurator.init();
 
-        // Assert: Token should be passed to the AuthTokenConsumer bean
-        Mockito.verify(springBean).tokenReceived("dummy-token");
-    }
+            // Assertions
+            assertEquals("test-host", System.getProperty("hostName"));
+            // You can verify interactions:
+            Mockito.verify(mockContext).reset();
+            Mockito.verify(mockJoranConfigurator).doConfigure("testfile.xml");
+            // Additional verifications as required
+        }
