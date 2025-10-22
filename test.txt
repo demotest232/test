@@ -1,39 +1,19 @@
-@Test
-void testLogEventSQLExceptionBranch() throws Exception {
-    AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
-    AuditEvent auditEvent = mock(AuditEvent.class);
-    when(auditEvent.getId()).thenReturn(null);
+ @Test
+    void tokenReceived_shouldInjectToken() {
+        // Arrange
+        MockServletContext servletContext = new MockServletContext();
+     
+        WebApplicationContext wac = Mockito.mock(WebApplicationContext.class);
+        AuthTokenConsumer springBean = Mockito.mock(AuthTokenConsumer.class);
+        Mockito.when(wac.getBean(AuthTokenConsumer.class)).thenReturn(springBean);
 
-    when(auditEventDAO.insert(auditEvent)).thenThrow(new SQLException("sql fail"));
+        servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, wac);
 
-    AuditTrailConfiguration config = new AuditTrailConfiguration("TABLENAME","PROPTABLE","SEQNAME");
-    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
+        AuthTokenToRequestScope consumer = new AuthTokenToRequestScope(servletContext);
 
-    Field daoField = storage.getClass().getDeclaredField("auditEventDAO");
-    daoField.setAccessible(true);
-    daoField.set(storage, auditEventDAO);
+        // Act
+        consumer.tokenReceived("dummy-token");
 
-    Exception ex = assertThrows(OperationServiceException.class,
-        () -> invokeLogEvent(storage, auditEvent));
-    assertTrue(ex.getMessage().contains("sql fail"));
-}
-
-@Test
-void testLogEventRuntimeExceptionBranch() throws Exception {
-    AuditEventDAO auditEventDAO = mock(AuditEventDAO.class);
-    AuditEvent auditEvent = mock(AuditEvent.class);
-    when(auditEvent.getId()).thenReturn(null);
-
-    when(auditEventDAO.insert(auditEvent)).thenThrow(new RuntimeException("runtime fail"));
-
-    AuditTrailConfiguration config = new AuditTrailConfiguration("TABLENAME","PROPTABLE","SEQNAME");
-    AuditEventStorageImpl storage = new AuditEventStorageImpl(config);
-
-    Field daoField = storage.getClass().getDeclaredField("auditEventDAO");
-    daoField.setAccessible(true);
-    daoField.set(storage, auditEventDAO);
-
-    Exception ex = assertThrows(OperationServiceException.class,
-        () -> invokeLogEvent(storage, auditEvent));
-    assertTrue(ex.getMessage().contains("runtime fail"));
-}
+        // Assert: Token should be passed to the AuthTokenConsumer bean
+        Mockito.verify(springBean).tokenReceived("dummy-token");
+    }
