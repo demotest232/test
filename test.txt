@@ -1,18 +1,57 @@
-@Test
-    void testDoFilter_WithGzip_Header() throws IOException, ServletException {
-        Enumeration<String> gzipEnum = Collections.enumeration(Collections.singletonList("gzip"));
-        when(mockRequest.getHeaders("Accept-Encoding")).thenReturn(gzipEnum);
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-        ArgumentCaptor<ServletResponse> responseCaptor = ArgumentCaptor.forClass(ServletResponse.class);
+class ActiveSwitchValueCallbackTest {
 
-        filter.doFilter(mockRequest, mockResponse, mockChain);
+    private ActiveSwitchValueCallback callback;
+    private DefaultValueCallback activeValue;
+    private DefaultValueCallback notActiveValue;
+    private GridRow row;
+    private GridCell cell;
 
-        verify(mockChain).doFilter(eq(mockRequest), responseCaptor.capture());
+    @BeforeEach
+    void setup() {
+        activeValue = mock(DefaultValueCallback.class);
+        notActiveValue = mock(DefaultValueCallback.class);
+        callback = new ActiveSwitchValueCallback("col1", activeValue, notActiveValue);
 
-        ServletResponse wrappedResponse = responseCaptor.getValue();
-        assertTrue(wrappedResponse instanceof HttpServletResponseWrapper);
+        row = mock(GridRow.class);
+        cell = mock(GridCell.class);
 
-       
-        wrappedResponse.getOutputStream();
-        wrappedResponse.getWriter();
+        when(row.getCells()).thenReturn(List.of(cell));
+        when(cell.getColumnId()).thenReturn("col1");
     }
+
+    @Test
+    void returnsActiveValueForY() {
+        when(cell.getValue()).thenReturn("Y");
+        when(activeValue.value(row)).thenReturn("active");
+
+        Object result = callback.value(row);
+
+        assertEquals("active", result);
+        verify(activeValue).value(row);
+        verify(notActiveValue, never()).value(any());
+    }
+
+    @Test
+    void returnsNotActiveValueForOther() {
+        when(cell.getValue()).thenReturn("N");
+        when(notActiveValue.value(row)).thenReturn("notActive");
+
+        Object result = callback.value(row);
+
+        assertEquals("notActive", result);
+        verify(notActiveValue).value(row);
+        verify(activeValue, never()).value(any());
+    }
+
+    @Test
+    void throwsExceptionIfNoMatchingCell() {
+        when(row.getCells()).thenReturn(List.of()); // No cells
+
+        assertThrows(NoValueException.class, () -> callback.value(row));
+    }
+}
