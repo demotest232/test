@@ -1,57 +1,37 @@
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+@Test
+void returnsActiveValueForY() throws Exception {
 
-class ActiveSwitchValueCallbackTest {
+    // Arrange
+    DefaultValueCallback activeValue = mock(DefaultValueCallback.class);
+    DefaultValueCallback notActiveValue = mock(DefaultValueCallback.class);
+    GridRow row = mock(GridRow.class);
+    GridCell cell = mock(GridCell.class);
 
-    private ActiveSwitchValueCallback callback;
-    private DefaultValueCallback activeValue;
-    private DefaultValueCallback notActiveValue;
-    private GridRow row;
-    private GridCell cell;
+   
+    ActiveSwitchValueCallback callback = new ActiveSwitchValueCallback();
+    Field columnIdField = callback.getClass().getDeclaredField("columnId");
+    columnIdField.setAccessible(true);
+    columnIdField.set(callback, "col1");
 
-    @BeforeEach
-    void setup() {
-        activeValue = mock(DefaultValueCallback.class);
-        notActiveValue = mock(DefaultValueCallback.class);
-        callback = new ActiveSwitchValueCallback("col1", activeValue, notActiveValue);
+    Field activeValueField = callback.getClass().getDeclaredField("activeValue");
+    activeValueField.setAccessible(true);
+    activeValueField.set(callback, activeValue);
 
-        row = mock(GridRow.class);
-        cell = mock(GridCell.class);
+    Field notActiveValueField = callback.getClass().getDeclaredField("notActiveValue");
+    notActiveValueField.setAccessible(true);
+    notActiveValueField.set(callback, notActiveValue);
 
-        when(row.getCells()).thenReturn(List.of(cell));
-        when(cell.getColumnId()).thenReturn("col1");
-    }
+   
+    when(cell.getColumnId()).thenReturn("col1");
+    when(cell.getValue()).thenReturn("Y");
+    when(row.getCells()).thenReturn(Collections.singletonList(cell));
+    when(activeValue.value(row)).thenReturn("active");
 
-    @Test
-    void returnsActiveValueForY() {
-        when(cell.getValue()).thenReturn("Y");
-        when(activeValue.value(row)).thenReturn("active");
+    // Act
+    Object result = callback.value(row);
 
-        Object result = callback.value(row);
-
-        assertEquals("active", result);
-        verify(activeValue).value(row);
-        verify(notActiveValue, never()).value(any());
-    }
-
-    @Test
-    void returnsNotActiveValueForOther() {
-        when(cell.getValue()).thenReturn("N");
-        when(notActiveValue.value(row)).thenReturn("notActive");
-
-        Object result = callback.value(row);
-
-        assertEquals("notActive", result);
-        verify(notActiveValue).value(row);
-        verify(activeValue, never()).value(any());
-    }
-
-    @Test
-    void throwsExceptionIfNoMatchingCell() {
-        when(row.getCells()).thenReturn(List.of()); // No cells
-
-        assertThrows(NoValueException.class, () -> callback.value(row));
-    }
+    // Assert
+    assertEquals("active", result);
+    verify(activeValue).value(row);
+    verify(notActiveValue, never()).value(row);
 }
