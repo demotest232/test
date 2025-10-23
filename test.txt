@@ -1,65 +1,22 @@
 import org.junit.jupiter.api.Test;
+import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class ChangeCodeValueCallbackTest {
+class CurrentTimestampValueCallbackTest {
 
     @Test
-    void returnsIForAddOperation() {
+    void returnsCurrentTimestamp() {
         GridRow row = mock(GridRow.class);
-        when(row.getOperation()).thenReturn("ADD");
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
+        CurrentTimestampValueCallback callback = new CurrentTimestampValueCallback();
+        long before = System.currentTimeMillis();
 
-        String result = callback.value(row);
+        Timestamp ts = callback.value(row);
 
-        assertEquals("I", result);
-    }
-
-    @Test
-    void returnsDForDeleteOperation() {
-        GridRow row = mock(GridRow.class);
-        when(row.getOperation()).thenReturn("DELETE");
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
-
-        String result = callback.value(row);
-
-        assertEquals("D", result);
-    }
-
-    @Test
-    void returnsUForUpdateOperation() {
-        GridRow row = mock(GridRow.class);
-        when(row.getOperation()).thenReturn("UPDATE");
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
-
-        String result = callback.value(row);
-
-        assertEquals("U", result);
-    }
-
-    @Test
-    void returnsNullIfRowIsNull() {
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
-
-        assertNull(callback.value(null));
-    }
-
-    @Test
-    void returnsNullIfOperationIsNull() {
-        GridRow row = mock(GridRow.class);
-        when(row.getOperation()).thenReturn(null);
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
-
-        assertNull(callback.value(row));
-    }
-
-    @Test
-    void throwsExceptionForUnknownOperation() {
-        GridRow row = mock(GridRow.class);
-        when(row.getOperation()).thenReturn("UNKNOWN");
-        ChangeCodeValueCallback callback = new ChangeCodeValueCallback();
-
-        Exception ex = assertThrows(IllegalArgumentException.class, () -> callback.value(row));
-        assertTrue(ex.getMessage().contains("unknown operation type"));
+        long after = System.currentTimeMillis();
+        assertNotNull(ts);
+        // The timestamp should be between before and after times
+        assertTrue(ts.getTime() >= before && ts.getTime() <= after,
+                   "Timestamp is not within expected range");
     }
 }
