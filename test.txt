@@ -1,1 +1,23 @@
-String invalidJson = "[ true, { \"x\": 10 }, someFieldName ]";
+@Test
+    public void testProcessVector_DefaultCase_ThrowsConversionException() throws Exception {
+    
+        JsonParser mockParser = mock(JsonParser.class);
+        when(mockParser.nextToken())
+            .thenReturn(JsonToken.FIELD_NAME)  // This token triggers default
+            .thenReturn(JsonToken.END_ARRAY);  // To stop loop
+
+       
+        Property mockProperty = mock(Property.class);
+
+     
+        YourClass yourObject = new YourClass();
+
+     
+        Method method = YourClass.class.getDeclaredMethod("processVector", JsonParser.class, Property.class);
+        method.setAccessible(true);
+
+      
+        assertThrows(ConversionException.class, () -> {
+            method.invoke(yourObject, mockParser, mockProperty);
+        });
+    }
