@@ -1,16 +1,1 @@
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-class DeleteCodeValueCallbackTest {
-
-    @Test
-    void alwaysReturnsD() {
-        GridRow row = mock(GridRow.class); // Mocked because input is ignored
-        DeleteCodeValueCallback callback = new DeleteCodeValueCallback();
-
-        String result = callback.value(row);
-
-        assertEquals("D", result);
-    }
-}
+String invalidJson = "[ true, { \"x\": 10 }, someFieldName ]";
