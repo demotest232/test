@@ -1,22 +1,16 @@
 import org.junit.jupiter.api.Test;
-import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class CurrentTimestampValueCallbackTest {
+class DeleteCodeValueCallbackTest {
 
     @Test
-    void returnsCurrentTimestamp() {
-        GridRow row = mock(GridRow.class);
-        CurrentTimestampValueCallback callback = new CurrentTimestampValueCallback();
-        long before = System.currentTimeMillis();
+    void alwaysReturnsD() {
+        GridRow row = mock(GridRow.class); // Mocked because input is ignored
+        DeleteCodeValueCallback callback = new DeleteCodeValueCallback();
 
-        Timestamp ts = callback.value(row);
+        String result = callback.value(row);
 
-        long after = System.currentTimeMillis();
-        assertNotNull(ts);
-        // The timestamp should be between before and after times
-        assertTrue(ts.getTime() >= before && ts.getTime() <= after,
-                   "Timestamp is not within expected range");
+        assertEquals("D", result);
     }
 }
