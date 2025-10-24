@@ -1,46 +1,46 @@
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+import org.mockito.Mockito;
 
+
+
+class RequestMessageGeneratorUnitTest {
 
     @Test
-    void testCreateMessage_variousInputs() {
-      
-        ParametersMessageGenerator generator = new ParametersMessageGenerator();
-
-     
-        Object[] params = {
-            42,
-            "hello",
-            Arrays.asList(1, 2, 3),
-            new int[]{4, 5, 6},
-            null
-        };
-
-        CharSequence result = generator.createMessage(params);
-        String strResult = result.toString();
-
-       
-
-      
-        assertTrue(strResult.contains("42"));
-        assertTrue(strResult.contains("hello"));
-        assertTrue(strResult.contains("Collection"));
-        assertTrue(strResult.contains("Array"));
-        assertTrue(strResult.contains("null") || strResult.contains("Null"));
-
-      
+    void testCreateMessage_nullRequest() {
+        RequestMessageGenerator generator = new RequestMessageGenerator();
+        assertEquals("(unknown request)", generator.createMessage(null).toString());
     }
 
     @Test
-    void testCreateMessage_emptyInput() {
-        ParametersMessageGenerator generator = new ParametersMessageGenerator();
-        Object[] params = {};
-        CharSequence result = generator.createMessage(params);
-        assertEquals("", result.toString());
+    void testCreateMessage_getDocument() {
+        DummyRequest req = new DummyRequest("GETDOCUMENT", "doc1", null);
+        RequestMessageGenerator generator = new RequestMessageGenerator();
+        String result = generator.createMessage(req).toString();
+
+        assertTrue(result.contains("requestType=GETDOCUMENT"));
+        assertTrue(result.contains("params")); 
+        assertTrue(result.contains("doc1"));   
     }
 
     @Test
-    void testCreateMessage_nullInput() {
-        ParametersMessageGenerator generator = new ParametersMessageGenerator();
-        CharSequence result = generator.createMessage(null);
-        assertEquals("", result.toString());
+    void testCreateMessage_getDocuments() {
+        DummyRequest req = new DummyRequest("GETDOCUMENTS", null, "searchParamSet");
+        RequestMessageGenerator generator = new RequestMessageGenerator();
+        String result = generator.createMessage(req).toString();
+
+        assertTrue(result.contains("requestType=GETDOCUMENTS"));
+        assertTrue(result.contains("searchParamSet"));
+    }
+
+    @Test
+    void testCreateMessage_unknownType() {
+        DummyRequest req = new DummyRequest("FOO_TYPE", null, null);
+        RequestMessageGenerator generator = new RequestMessageGenerator();
+        String result = generator.createMessage(req).toString();
+
+        assertTrue(result.contains("requestType=FOO_TYPE"));
+        // Should not contain any params, so it will not append "params"
+        assertFalse(result.contains("params"));
     }
 }
