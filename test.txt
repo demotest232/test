@@ -1,40 +1,69 @@
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
-class SearchResultParameterConverterTest {
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-    @Test
-    void testConvertWithInvalidType() {
-        SearchResultParameterConverter converter = new SearchResultParameterConverter();
-        assertThrows(IllegalArgumentException.class, () ->
-            converter.convertIntoStatisticsMessage("notASearchResult")
-        );
+class RequestExecutionTrackerTest {
+
+    private RequestExecutionTracker tracker;
+    private PlainTimeTracker timeTracker;
+
+    @BeforeEach
+    void setUp() {
+        tracker = new RequestExecutionTracker();
+        timeTracker = mock(PlainTimeTracker.class);
+       
+        tracker.timeTracker = timeTracker; 
     }
 
     @Test
-    void testConvertWithNullTable() {
-        SearchResultParameterConverter converter = new SearchResultParameterConverter();
-        SearchResult sr = mock(SearchResult.class);
-        when(sr.getTable()).thenReturn(null);
-
-        String result = converter.convertIntoStatisticsMessage(sr);
-        assertEquals("null", result); 
+    void testDestroySetsTimeTrackerNull() {
+        tracker.destroy();
+        assertNull(tracker.timeTracker);
     }
 
     @Test
-    void testConvertWithValidTable() {
-        SearchResultParameterConverter converter = new SearchResultParameterConverter();
-        SearchResult sr = mock(SearchResult.class);
-        Table table = mock(Table.class);
+    void testDoFilterNormalExecution() throws Exception {
+        ServletRequest req = mock(HttpServletRequest.class);
+        ServletResponse res = mock(ServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
 
-        when(sr.getTable()).thenReturn(table);
-        when(table.getName()).thenReturn("TestTable");
-        when(table.getRowCount()).thenReturn(5);
+       
+        when(((HttpServletRequest) req).getParameter("uuid")).thenReturn("my-uuid");
+        when(req instanceof HttpServletRequest).thenReturn(true);
 
-        String result = converter.convertIntoStatisticsMessage(sr);
-        assertTrue(result.contains("TestTable"));
-        assertTrue(result.contains("5"));
+        tracker.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+       
+    }
+
+    @Test
+    void testPreProcessWithUuid() throws Exception {
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getParameter("uuid")).thenReturn("uuidValue");
+
+      
+        tracker.timeTracker = timeTracker;
+        TrackingContext context = tracker.preProcess(req);
+
+        verify(timeTracker).startLog(anyString(), eq("uuidValue"));
+        assertNotNull(context);
+    }
+
+    @Test
+    void testPreProcessWithoutUuid() throws Exception {
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getParameter("uuid")).thenReturn(null);
+
+        tracker.timeTracker = timeTracker;
+        TrackingContext context = tracker.preProcess(req);
+
+        verify(timeTracker).startLog(anyString());
+        assertNotNull(context);
     }
 }
