@@ -1,23 +1,55 @@
-@Test
-    public void testProcessVector_DefaultCase_ThrowsConversionException() throws Exception {
-    
-        JsonParser mockParser = mock(JsonParser.class);
-        when(mockParser.nextToken())
-            .thenReturn(JsonToken.FIELD_NAME)  // This token triggers default
-            .thenReturn(JsonToken.END_ARRAY);  // To stop loop
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-       
-        Property mockProperty = mock(Property.class);
+import java.util.*;
 
-     
-        YourClass yourObject = new YourClass();
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-     
-        Method method = YourClass.class.getDeclaredMethod("processVector", JsonParser.class, Property.class);
-        method.setAccessible(true);
+class GetGridDataHandlerTest {
+
+    @Mock
+    private ExtendedObjectFactory xmlFactory;
+
+    @Mock
+    private Map<String, GridDataFactory<?>> gridDataFactories;
+
+    @Mock
+    private GridDataFactory<?> gridDataFactory;
+
+    @InjectMocks
+    private GetGridDataHandler handler;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testExecuteCommand_WithValidFactories_AddsGrids() {
+        // Arrange
+        GenericCommand xmlValue = mock(GenericCommand.class);
+        XmlGetGridDataCommand command = mock(XmlGetGridDataCommand.class);
+        GridCriterion criterion = mock(GridCriterion.class);
+        List<GridCriterion> criteria = List.of(criterion);
+
+        when(criterion.getGridName()).thenReturn("testGrid");
+        when(gridDataFactories.get("testGrid")).thenReturn(gridDataFactory);
+        when(command.getGridCriteria()).thenReturn(criteria);
+        when(xmlFactory.doSomething()).thenReturn(/* result if needed */);
 
       
-        assertThrows(ConversionException.class, () -> {
-            method.invoke(yourObject, mockParser, mockProperty);
-        });
+
+        // Act
+        XmlLGridDataCommand result = handler.executeCommand(xmlValue);
+
+        // Assert
+        assertNotNull(result);
+        // Add additional asserts as required, e.g., result.getGrids().size(), contents, etc.
+        verify(gridDataFactories).get("testGrid");
+        // Optionally: verify grids were added as expected
     }
+}
