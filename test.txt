@@ -1,67 +1,40 @@
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import org.junit.jupiter.api.BeforeEach;
+
 import org.junit.jupiter.api.Test;
-import java.util.HashMap;
-import java.util.Map;
 
-class UniversalAccessServiceBeanUnitTest {
-
-    private UniversalAccessServiceBean serviceBean;
-    private ExecuteCommand executeCommandReq;
-    private ClientUser executeCommandUser;
-    private GenericCommandHandler handler;
-    private GenericCommand command;
-    private Property prop;
-    private ExecuteCommandHeader header;
-
-    @BeforeEach
-    void setup() {
-        serviceBean = new UniversalAccessServiceBean();
-        executeCommandReq = mock(ExecuteCommand.class);
-        handler = mock(GenericCommandHandler.class);
-        command = mock(GenericCommand.class);
-        prop = mock(Property.class);
-        header = mock(ExecuteCommandHeader.class);
-
-     
-        serviceBean.commandHandlers = new HashMap<>();
-        serviceBean.soapHeader = mock(SoapHeaderRequestScope.class);
-
-        when(executeCommandReq.getCommand()).thenReturn(command);
-        when(command.getProperty()).thenReturn(new Property[] { prop });
-        when(prop.getName()).thenReturn(PropertyNameConstants.COMMAND_NAME);
-       
-    }
+class DocumentParameterConverterUnitTest {
 
     @Test
-    void testExecuteCommand_Success() throws Exception {
-      
-        String commandName = "testCommand";
-      
-        serviceBean.commandHandlers.put(commandName, handler);
-
-      
-        when(GenericCommandUtil.findPropertyByName(anyString(), any())).thenReturn(prop);
-        when(GenericCommandUtil.singleSimpleValue(prop)).thenReturn(commandName);
-
-        GenericCommand expectedResult = mock(GenericCommand.class);
-        when(handler.executeCommand(command)).thenReturn(expectedResult);
-        when(handler.getXmlCommandObject()).thenReturn(expectedResult);
-
-        GenericCommand result = serviceBean.executeCommand(executeCommandReq, executeCommandUser, header);
-        assertEquals(expectedResult, result);
-    }
-
-    @Test
-    void testExecuteCommand_HandlerNotFound() {
-       
-        when(GenericCommandUtil.findPropertyByName(anyString(), any())).thenReturn(prop);
-        when(GenericCommandUtil.singleSimpleValue(prop)).thenReturn("missingCommand");
-
-        Exception exception = assertThrows(PropertyValueException.class, () ->
-            serviceBean.executeCommand(executeCommandReq, executeCommandUser, header)
+    void testConvertWithInvalidType() {
+        DocumentParameterConverter converter = new DocumentParameterConverter();
+        assertThrows(IllegalArgumentException.class, () -> 
+            converter.convertIntoStatisticsMessage("invalidType")
         );
-        assertTrue(exception.getMessage().contains("Unknown command name"));
+    }
+
+    @Test
+    void testConvertWithNullDocId() {
+        DocumentParameterConverter converter = new DocumentParameterConverter();
+        Document doc = mock(Document.class);
+        when(doc.getId()).thenReturn(null);
+
+        String result = converter.convertIntoStatisticsMessage(doc);
+        assertEquals("null", result); 
+    }
+
+    @Test
+    void testConvertWithValidDocId() {
+        DocumentParameterConverter converter = new DocumentParameterConverter();
+        Document doc = mock(Document.class);
+        DocumentId docId = mock(DocumentId.class);
+
+        when(doc.getId()).thenReturn(docId);
+        when(docId.getType()).thenReturn("TYPE1");
+        when(docId.getId()).thenReturn("ID1");
+
+        String result = converter.convertIntoStatisticsMessage(doc);
+        assertTrue(result.contains("TYPE1"));
+        assertTrue(result.contains("ID1"));
     }
 }
