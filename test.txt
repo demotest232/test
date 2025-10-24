@@ -3,38 +3,38 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.Test;
 
-class DocumentParameterConverterUnitTest {
+class SearchResultParameterConverterTest {
 
     @Test
     void testConvertWithInvalidType() {
-        DocumentParameterConverter converter = new DocumentParameterConverter();
-        assertThrows(IllegalArgumentException.class, () -> 
-            converter.convertIntoStatisticsMessage("invalidType")
+        SearchResultParameterConverter converter = new SearchResultParameterConverter();
+        assertThrows(IllegalArgumentException.class, () ->
+            converter.convertIntoStatisticsMessage("notASearchResult")
         );
     }
 
     @Test
-    void testConvertWithNullDocId() {
-        DocumentParameterConverter converter = new DocumentParameterConverter();
-        Document doc = mock(Document.class);
-        when(doc.getId()).thenReturn(null);
+    void testConvertWithNullTable() {
+        SearchResultParameterConverter converter = new SearchResultParameterConverter();
+        SearchResult sr = mock(SearchResult.class);
+        when(sr.getTable()).thenReturn(null);
 
-        String result = converter.convertIntoStatisticsMessage(doc);
+        String result = converter.convertIntoStatisticsMessage(sr);
         assertEquals("null", result); 
     }
 
     @Test
-    void testConvertWithValidDocId() {
-        DocumentParameterConverter converter = new DocumentParameterConverter();
-        Document doc = mock(Document.class);
-        DocumentId docId = mock(DocumentId.class);
+    void testConvertWithValidTable() {
+        SearchResultParameterConverter converter = new SearchResultParameterConverter();
+        SearchResult sr = mock(SearchResult.class);
+        Table table = mock(Table.class);
 
-        when(doc.getId()).thenReturn(docId);
-        when(docId.getType()).thenReturn("TYPE1");
-        when(docId.getId()).thenReturn("ID1");
+        when(sr.getTable()).thenReturn(table);
+        when(table.getName()).thenReturn("TestTable");
+        when(table.getRowCount()).thenReturn(5);
 
-        String result = converter.convertIntoStatisticsMessage(doc);
-        assertTrue(result.contains("TYPE1"));
-        assertTrue(result.contains("ID1"));
+        String result = converter.convertIntoStatisticsMessage(sr);
+        assertTrue(result.contains("TestTable"));
+        assertTrue(result.contains("5"));
     }
 }
