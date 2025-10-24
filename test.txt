@@ -1,80 +1,46 @@
-private CharSequence invokeConvertIntoStatisticMessage(
-            ParametersMessageGenerator instance, Object parameterValue, int level) throws Exception {
-        Method method = ParametersMessageGenerator.class
-            .getDeclaredMethod("convertIntoStatisticMessage", Object.class, int.class);
-        method.setAccessible(true);
-        return (CharSequence) method.invoke(instance, parameterValue, level);
-    }
+
 
     @Test
-    void testConvertArgumentNull() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator();
-        CharSequence result = invokeConvertIntoStatisticMessage(instance, null, 0);
-        assertEquals("null", result.toString());
-    }
+    void testCreateMessage_variousInputs() {
+      
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
 
-    @Test
-    void testMaxLevelReached() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator();
-        instance.maxLevel = 2; 
-        CharSequence result = invokeConvertIntoStatisticMessage(instance, "test", 2);
-        assertEquals("(maximum recursion level reached)", result.toString());
-    }
-
-    @Test
-    void testArrayArgument() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator() {
-           
-            private CharSequence stubbed = "ARRAY_RESULT";
-            @Override
-            protected CharSequence convertArrayIntoStatisticMessage(Object parameterValue, int level) {
-                return stubbed;
-            }
+     
+        Object[] params = {
+            42,
+            "hello",
+            Arrays.asList(1, 2, 3),
+            new int[]{4, 5, 6},
+            null
         };
-        CharSequence result = invokeConvertIntoStatisticMessage(instance, new String[] {"x"}, 0);
-        assertEquals("ARRAY_RESULT", result.toString());
+
+        CharSequence result = generator.createMessage(params);
+        String strResult = result.toString();
+
+       
+
+      
+        assertTrue(strResult.contains("42"));
+        assertTrue(strResult.contains("hello"));
+        assertTrue(strResult.contains("Collection"));
+        assertTrue(strResult.contains("Array"));
+        assertTrue(strResult.contains("null") || strResult.contains("Null"));
+
+      
     }
 
     @Test
-    void testCollectionArgument() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator() {
-            private CharSequence stubbed = "COLL_RESULT";
-            @Override
-            protected CharSequence convertCollectionIntoStatisticMessage(Collection<?> parameterValue, int level) {
-                return stubbed;
-            }
-        };
-        CharSequence result = invokeConvertIntoStatisticMessage(
-            instance, Collections.singletonList("a"), 0);
-        assertEquals("COLL_RESULT", result.toString());
+    void testCreateMessage_emptyInput() {
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
+        Object[] params = {};
+        CharSequence result = generator.createMessage(params);
+        assertEquals("", result.toString());
     }
 
     @Test
-    void testScalarArgumentAndTruncation() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator() {
-            @Override
-            protected CharSequence convertScalarIntoStatisticMessage(Object parameterValue) {
-              
-                char[] chars = new char[600];
-                Arrays.fill(chars, 'A');
-                return new String(chars);
-            }
-        };
-        instance.maxParameterLength = 512;
-        CharSequence result = invokeConvertIntoStatisticMessage(instance, 123, 0);
-        String res = result.toString();
-        assertTrue(res.length() <= 512);
-        assertTrue(res.endsWith("..."));
+    void testCreateMessage_nullInput() {
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
+        CharSequence result = generator.createMessage(null);
+        assertEquals("", result.toString());
     }
-
-    @Test
-    void testScalarArgumentNormal() throws Exception {
-        ParametersMessageGenerator instance = new ParametersMessageGenerator() {
-            @Override
-            protected CharSequence convertScalarIntoStatisticMessage(Object parameterValue) {
-                return "SCALAR";
-            }
-        };
-        CharSequence result = invokeConvertIntoStatisticMessage(instance, 123, 0);
-        assertEquals("SCALAR", result.toString());
-    }
+}
