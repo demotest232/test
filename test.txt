@@ -1,44 +1,23 @@
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-class OracleQueryBuilderFactoryTest {
+class SoapHeaderRequestScopeUnitTest {
 
     @Test
-    void testCreateSelectBuilder() {
-        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
-        GridSelectQueryBuilder builder = factory.createSelectBuilder();
-        assertNotNull(builder);
-        assertTrue(builder instanceof OracleSelectQueryBuilder);
+    void testSetAndGetClientUser() {
+      
+        SoapHeaderRequestScope scope = new SoapHeaderRequestScope();
+        ClientUser user = new ClientUser(); 
+      
+        scope.setClientUser(user);
+
+       
+        assertEquals(user, scope.getClientUser());
     }
 
     @Test
-    void testCreateRowModifyBuilderAdd() {
-        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
-        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.ADD);
-        assertNotNull(builder);
-        assertTrue(builder instanceof InsertQueryBuilder);
-    }
-
-    @Test
-    void testCreateRowModifyBuilderDelete() {
-        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
-        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.DELETE);
-        assertNotNull(builder);
-        assertTrue(builder instanceof DeleteQueryBuilder);
-    }
-
-    @Test
-    void testCreateRowModifyBuilderUpdate() {
-        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
-        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.UPDATE);
-        assertNotNull(builder);
-        assertTrue(builder instanceof UpdateQueryBuilder);
-    }
-
-    @Test
-    void testCreateRowModifyBuilderNull() {
-        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
-        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(null);
-        assertNull(builder);
+    void testGetClientUserWhenNotSet() {
+        SoapHeaderRequestScope scope = new SoapHeaderRequestScope();
+        assertNull(scope.getClientUser());
     }
 }
