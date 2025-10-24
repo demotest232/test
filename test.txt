@@ -1,55 +1,66 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.util.*;
-
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-class GetGridDataHandlerTest {
-
-    @Mock
+@Mock
     private ExtendedObjectFactory xmlFactory;
 
     @Mock
-    private Map<String, GridDataFactory<?>> gridDataFactories;
-
-    @Mock
-    private GridDataFactory<?> gridDataFactory;
+    private GridDataFactory<Object> gridDataFactory;
 
     @InjectMocks
     private GetGridDataHandler handler;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        MockitoAnnotations.openMocks(this);     
+        Map<String, GridDataFactory<?>> factories = new HashMap<>();
+        factories.put("GridA", gridDataFactory);      
+        setField(handler, "gridDataFactories", factories);
     }
 
     @Test
-    void testExecuteCommand_WithValidFactories_AddsGrids() {
-        // Arrange
+    void testExecuteCommand_HappyPath() {
+     
         GenericCommand xmlValue = mock(GenericCommand.class);
-        XmlGetGridDataCommand command = mock(XmlGetGridDataCommand.class);
-        GridCriterion criterion = mock(GridCriterion.class);
-        List<GridCriterion> criteria = List.of(criterion);
 
-        when(criterion.getGridName()).thenReturn("testGrid");
-        when(gridDataFactories.get("testGrid")).thenReturn(gridDataFactory);
-        when(command.getGridCriteria()).thenReturn(criteria);
-        when(xmlFactory.doSomething()).thenReturn(/* result if needed */);
+        XmlGetGridDataCommand xmlGetGridDataCommand = mock(XmlGetGridDataCommand.class);
+        XmlGridDataCommand resultCommand = mock(XmlGridDataCommand.class);
+
+        GridCriterion criterion = mock(GridCriterion.class);
+        when(criterion.getGridName()).thenReturn("GridA");
+
+        when(xmlGetGridDataCommand.getGridCriteria()).thenReturn(List.of(criterion));    
 
       
+        Object gridData = new Object();
+        when(gridDataFactory.getGridData(criterion)).thenReturn(gridData);      
+        XmlGridDataCommand result = handler.executeCommand(xmlValue);     
+        verify(gridDataFactory, atLeastOnce()).getGridData(criterion);
 
-        // Act
-        XmlLGridDataCommand result = handler.executeCommand(xmlValue);
-
-        // Assert
+      
         assertNotNull(result);
-        // Add additional asserts as required, e.g., result.getGrids().size(), contents, etc.
-        verify(gridDataFactories).get("testGrid");
-        // Optionally: verify grids were added as expected
+        assertTrue(result.getGrids().contains(gridData));
     }
-}
+
+    @Test
+    void testExecuteCommand_NullFactorySkipped() {
+      
+        GenericCommand xmlValue = mock(GenericCommand.class);
+        XmlGetGridDataCommand xmlGetGridDataCommand = mock(XmlGetGridDataCommand.class);
+        GridCriterion criterion = mock(GridCriterion.class);
+        when(criterion.getGridName()).thenReturn("MissingGrid");
+        when(xmlGetGridDataCommand.getGridCriteria()).thenReturn(List.of(criterion));
+
+        XmlGridDataCommand result = handler.executeCommand(xmlValue);
+
+        assertNotNull(result);
+        assertTrue(result.getGrids().isEmpty());
+    }
+
+  
+    private static void setField(Object target, String fieldName, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
