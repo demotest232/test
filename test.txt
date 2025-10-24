@@ -1,69 +1,41 @@
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import java.lang.reflect.Method;
 
-class RequestExecutionTrackerTest {
+class ParametersMessageGeneratorTest {
 
-    private RequestExecutionTracker tracker;
-    private PlainTimeTracker timeTracker;
+    @Test
+    void testCreateMessage_NullArray() throws Exception {
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
+        Method method = ParametersMessageGenerator.class.getDeclaredMethod("createMessage", Object[].class);
+        method.setAccessible(true);
 
-    @BeforeEach
-    void setUp() {
-        tracker = new RequestExecutionTracker();
-        timeTracker = mock(PlainTimeTracker.class);
-       
-        tracker.timeTracker = timeTracker; 
+        CharSequence result = (CharSequence) method.invoke(generator, (Object) null);
+        assertEquals("", result.toString());
     }
 
     @Test
-    void testDestroySetsTimeTrackerNull() {
-        tracker.destroy();
-        assertNull(tracker.timeTracker);
+    void testCreateMessage_EmptyArray() throws Exception {
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
+        Method method = ParametersMessageGenerator.class.getDeclaredMethod("createMessage", Object[].class);
+        method.setAccessible(true);
+
+        CharSequence result = (CharSequence) method.invoke(generator, (Object) new Object[0]);
+        assertEquals("", result.toString());
     }
 
     @Test
-    void testDoFilterNormalExecution() throws Exception {
-        ServletRequest req = mock(HttpServletRequest.class);
-        ServletResponse res = mock(ServletResponse.class);
-        FilterChain chain = mock(FilterChain.class);
+    void testCreateMessage_NonEmptyArray() throws Exception {
+        ParametersMessageGenerator generator = new ParametersMessageGenerator();
+        Method method = ParametersMessageGenerator.class.getDeclaredMethod("createMessage", Object[].class);
+        method.setAccessible(true);
 
        
-        when(((HttpServletRequest) req).getParameter("uuid")).thenReturn("my-uuid");
-        when(req instanceof HttpServletRequest).thenReturn(true);
-
-        tracker.doFilter(req, res, chain);
-
-        verify(chain).doFilter(req, res);
-       
-    }
-
-    @Test
-    void testPreProcessWithUuid() throws Exception {
-        HttpServletRequest req = mock(HttpServletRequest.class);
-        when(req.getParameter("uuid")).thenReturn("uuidValue");
-
+        Object[] input = new Object[] { "test1", "test2" };
       
-        tracker.timeTracker = timeTracker;
-        TrackingContext context = tracker.preProcess(req);
 
-        verify(timeTracker).startLog(anyString(), eq("uuidValue"));
-        assertNotNull(context);
-    }
-
-    @Test
-    void testPreProcessWithoutUuid() throws Exception {
-        HttpServletRequest req = mock(HttpServletRequest.class);
-        when(req.getParameter("uuid")).thenReturn(null);
-
-        tracker.timeTracker = timeTracker;
-        TrackingContext context = tracker.preProcess(req);
-
-        verify(timeTracker).startLog(anyString());
-        assertNotNull(context);
+        CharSequence result = (CharSequence) method.invoke(generator, (Object) input);
+       
+       assertTrue(result.toString().contains("test1"));
     }
 }
