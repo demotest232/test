@@ -1,66 +1,44 @@
-@Mock
-    private ExtendedObjectFactory xmlFactory;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-    @Mock
-    private GridDataFactory<Object> gridDataFactory;
+class OracleQueryBuilderFactoryTest {
 
-    @InjectMocks
-    private GetGridDataHandler handler;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);     
-        Map<String, GridDataFactory<?>> factories = new HashMap<>();
-        factories.put("GridA", gridDataFactory);      
-        setField(handler, "gridDataFactories", factories);
+    @Test
+    void testCreateSelectBuilder() {
+        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
+        GridSelectQueryBuilder builder = factory.createSelectBuilder();
+        assertNotNull(builder);
+        assertTrue(builder instanceof OracleSelectQueryBuilder);
     }
 
     @Test
-    void testExecuteCommand_HappyPath() {
-     
-        GenericCommand xmlValue = mock(GenericCommand.class);
-
-        XmlGetGridDataCommand xmlGetGridDataCommand = mock(XmlGetGridDataCommand.class);
-        XmlGridDataCommand resultCommand = mock(XmlGridDataCommand.class);
-
-        GridCriterion criterion = mock(GridCriterion.class);
-        when(criterion.getGridName()).thenReturn("GridA");
-
-        when(xmlGetGridDataCommand.getGridCriteria()).thenReturn(List.of(criterion));    
-
-      
-        Object gridData = new Object();
-        when(gridDataFactory.getGridData(criterion)).thenReturn(gridData);      
-        XmlGridDataCommand result = handler.executeCommand(xmlValue);     
-        verify(gridDataFactory, atLeastOnce()).getGridData(criterion);
-
-      
-        assertNotNull(result);
-        assertTrue(result.getGrids().contains(gridData));
+    void testCreateRowModifyBuilderAdd() {
+        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
+        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.ADD);
+        assertNotNull(builder);
+        assertTrue(builder instanceof InsertQueryBuilder);
     }
 
     @Test
-    void testExecuteCommand_NullFactorySkipped() {
-      
-        GenericCommand xmlValue = mock(GenericCommand.class);
-        XmlGetGridDataCommand xmlGetGridDataCommand = mock(XmlGetGridDataCommand.class);
-        GridCriterion criterion = mock(GridCriterion.class);
-        when(criterion.getGridName()).thenReturn("MissingGrid");
-        when(xmlGetGridDataCommand.getGridCriteria()).thenReturn(List.of(criterion));
-
-        XmlGridDataCommand result = handler.executeCommand(xmlValue);
-
-        assertNotNull(result);
-        assertTrue(result.getGrids().isEmpty());
+    void testCreateRowModifyBuilderDelete() {
+        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
+        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.DELETE);
+        assertNotNull(builder);
+        assertTrue(builder instanceof DeleteQueryBuilder);
     }
 
-  
-    private static void setField(Object target, String fieldName, Object value) {
-        try {
-            var field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Test
+    void testCreateRowModifyBuilderUpdate() {
+        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
+        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(OperationTypeEnum.UPDATE);
+        assertNotNull(builder);
+        assertTrue(builder instanceof UpdateQueryBuilder);
     }
+
+    @Test
+    void testCreateRowModifyBuilderNull() {
+        OracleQueryBuilderFactory factory = new OracleQueryBuilderFactory();
+        RowModifyQueryBuilder builder = factory.createRowModifyBuilder(null);
+        assertNull(builder);
+    }
+}
