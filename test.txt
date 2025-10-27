@@ -1,4 +1,21 @@
- @Test
+@SuppressWarnings("unchecked")
+    private void setSqlQueries(Map<OperationTypeEnum, Map<String, List<List<Object>>>> value) {
+        try {
+            Field field = GridModifyQueryBuilderImpl.class.getDeclaredField("sqlQueries");
+            field.setAccessible(true);
+
+        
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+
+            field.set(builder, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to inject sqlQueries via reflection", e);
+        }
+    }
+
+    @Test
     void testBuild_withAllOperationTypes() {
         // Arrange
         Map<String, List<List<Object>>> deleteQueries = new HashMap<>();
@@ -10,28 +27,33 @@
         Map<String, List<List<Object>>> addQueries = new HashMap<>();
         addQueries.put("INSERT INTO table (id, name) VALUES (?, ?)", List.of(List.of(2, "Jane")));
 
-      
-        builder.sqlQueries.put(OperationTypeEnum.DELETE, deleteQueries);
-        builder.sqlQueries.put(OperationTypeEnum.UPDATE, updateQueries);
-        builder.sqlQueries.put(OperationTypeEnum.ADD, addQueries);
+        Map<OperationTypeEnum, Map<String, List<List<Object>>>> queries = new EnumMap<>(OperationTypeEnum.class);
+        queries.put(OperationTypeEnum.DELETE, deleteQueries);
+        queries.put(OperationTypeEnum.UPDATE, updateQueries);
+        queries.put(OperationTypeEnum.ADD, addQueries);
+
+        setSqlQueries(queries);
 
         // Act
         var result = builder.build();
 
         // Assert
         assertNotNull(result);
-        assertEquals(3, result.size(), "Should have 3 results total (1 per query type)");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("DELETE")), "Should contain DELETE query");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("UPDATE")), "Should contain UPDATE query");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("INSERT")), "Should contain INSERT query");
+        assertEquals(3, result.size(), "Should have 3 results total (one per query type)");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("DELETE")), "Contains DELETE query");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("UPDATE")), "Contains UPDATE query");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("INSERT")), "Contains INSERT query");
     }
 
     @Test
     void testBuild_withNoQueries() {
+        // Arrange
+        setSqlQueries(new EnumMap<>(OperationTypeEnum.class));
+
         // Act
         var result = builder.build();
 
         // Assert
         assertNotNull(result);
-        assertTrue(result.isEmpty(), "Result should be empty when no queries exist");
+        assertTrue(result.isEmpty(), "Result should be empty when there are no queries");
     }
