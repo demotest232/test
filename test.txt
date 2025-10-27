@@ -1,97 +1,37 @@
- @Mock
-    private ExtendedObjectFactory xmlFactory;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
-    @Mock
-    private GenericCommand xmlValue;
+public class AuthTokenUnavailableUnitTest {
 
-    @Mock
-    private GridCriterion gridCriterion;
-
-    @Mock
-    private GridDataFactory<Object> gridDataFactory;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    @Test
+    public void testDefaultConstructor() {
+        AuthTokenUnavailable ex = new AuthTokenUnavailable();
+        assertNull(ex.getMessage());
+        assertNull(ex.getCause());
     }
 
     @Test
-    void testExecuteCommand_WithValidGridFactory() {
-        // Arrange
-        GetGridDataHandler handler = new GetGridDataHandler();
-
-       
-        injectField(handler, "xmlFactory", xmlFactory);
-
-        Map<String, GridDataFactory<?>> gridFactories = new HashMap<>();
-        gridFactories.put("testGrid", gridDataFactory);
-        injectField(handler, "gridDataFactories", gridFactories);
-
-        
-        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
-        XmlGridDataCommand mockResult = mock(XmlGridDataCommand.class);
-        List<GridCriterion> criteria = List.of(gridCriterion);
-
-        when(gridCriterion.getGridName()).thenReturn("testGrid");
-        when(mockCommand.getGridCriteria()).thenReturn(criteria);
-        when(gridDataFactory.getGridData(gridCriterion)).thenReturn("gridData");
-
-       
-        try (MockedConstruction<XmlGetGridDataCommand> cmdCtor = mockConstruction(XmlGetGridDataCommand.class,
-                (mock, context) -> {
-                    when(mock.getGridCriteria()).thenReturn(criteria);
-                });
-             MockedConstruction<XmlGridDataCommand> resCtor = mockConstruction(XmlGridDataCommand.class,
-                (mock, context) -> {
-                    when(mock.getGrids()).thenReturn(new ArrayList<>());
-                })) {
-
-            // Act
-            XmlGridDataCommand result = handler.executeCommand(xmlValue);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(1, result.getGrids().size());
-            assertTrue(result.getGrids().contains("gridData"));
-        }
+    public void testConstructorWithMessage() {
+        String message = "Token is unavailable";
+        AuthTokenUnavailable ex = new AuthTokenUnavailable(message);
+        assertEquals(message, ex.getMessage());
+        assertNull(ex.getCause());
     }
 
     @Test
-    void testExecuteCommand_SkipsUnknownGridFactory() {
-        // Arrange
-        GetGridDataHandler handler = new GetGridDataHandler();
-        injectField(handler, "xmlFactory", xmlFactory);
-
-        Map<String, GridDataFactory<?>> gridFactories = new HashMap<>();
-        gridFactories.put("otherGrid", gridDataFactory); // no match
-        injectField(handler, "gridDataFactories", gridFactories);
-
-        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
-        List<GridCriterion> criteria = List.of(gridCriterion);
-        when(gridCriterion.getGridName()).thenReturn("missingGrid");
-        when(mockCommand.getGridCriteria()).thenReturn(criteria);
-
-        try (MockedConstruction<XmlGetGridDataCommand> cmdCtor = mockConstruction(XmlGetGridDataCommand.class,
-                (mock, context) -> when(mock.getGridCriteria()).thenReturn(criteria));
-             MockedConstruction<XmlGridDataCommand> resCtor = mockConstruction(XmlGridDataCommand.class,
-                (mock, context) -> when(mock.getGrids()).thenReturn(new ArrayList<>()))) {
-
-            // Act
-            XmlGridDataCommand result = handler.executeCommand(xmlValue);
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.getGrids().isEmpty());
-        }
+    public void testConstructorWithCause() {
+        Throwable cause = new RuntimeException("underlying");
+        AuthTokenUnavailable ex = new AuthTokenUnavailable(cause);
+        assertEquals("java.lang.RuntimeException: underlying", ex.getMessage());
+        assertEquals(cause, ex.getCause());
     }
 
-  
-    private static void injectField(Object target, String fieldName, Object value) {
-        try {
-            var field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Test
+    public void testConstructorWithMessageAndCause() {
+        String message = "Token Error";
+        Throwable cause = new RuntimeException("details");
+        AuthTokenUnavailable ex = new AuthTokenUnavailable(message, cause);
+        assertEquals(message, ex.getMessage());
+        assertEquals(cause, ex.getCause());
     }
+}
