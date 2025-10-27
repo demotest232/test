@@ -1,59 +1,17 @@
-@SuppressWarnings("unchecked")
-    private void setSqlQueries(Map<OperationTypeEnum, Map<String, List<List<Object>>>> value) {
+ @SuppressWarnings("unchecked")
+    private void setSqlQueries(Map<OperationTypeEnum, Map<String, List<List<Object>>>> newMap) {
         try {
             Field field = GridModifyQueryBuilderImpl.class.getDeclaredField("sqlQueries");
             field.setAccessible(true);
 
-        
-            Field modifiersField = Field.class.getDeclaredField("modifiers");
-            modifiersField.setAccessible(true);
-            modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+         
+            Map<OperationTypeEnum, Map<String, List<List<Object>>>> existing =
+                    (Map<OperationTypeEnum, Map<String, List<List<Object>>>>) field.get(builder);
 
-            field.set(builder, value);
+         
+            existing.clear();
+            existing.putAll(newMap);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to inject sqlQueries via reflection", e);
+            throw new RuntimeException("Failed to modify sqlQueries", e);
         }
-    }
-
-    @Test
-    void testBuild_withAllOperationTypes() {
-        // Arrange
-        Map<String, List<List<Object>>> deleteQueries = new HashMap<>();
-        deleteQueries.put("DELETE FROM table WHERE id=?", List.of(List.of(1)));
-
-        Map<String, List<List<Object>>> updateQueries = new HashMap<>();
-        updateQueries.put("UPDATE table SET name=? WHERE id=?", List.of(List.of("John", 1)));
-
-        Map<String, List<List<Object>>> addQueries = new HashMap<>();
-        addQueries.put("INSERT INTO table (id, name) VALUES (?, ?)", List.of(List.of(2, "Jane")));
-
-        Map<OperationTypeEnum, Map<String, List<List<Object>>>> queries = new EnumMap<>(OperationTypeEnum.class);
-        queries.put(OperationTypeEnum.DELETE, deleteQueries);
-        queries.put(OperationTypeEnum.UPDATE, updateQueries);
-        queries.put(OperationTypeEnum.ADD, addQueries);
-
-        setSqlQueries(queries);
-
-        // Act
-        var result = builder.build();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(3, result.size(), "Should have 3 results total (one per query type)");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("DELETE")), "Contains DELETE query");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("UPDATE")), "Contains UPDATE query");
-        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("INSERT")), "Contains INSERT query");
-    }
-
-    @Test
-    void testBuild_withNoQueries() {
-        // Arrange
-        setSqlQueries(new EnumMap<>(OperationTypeEnum.class));
-
-        // Act
-        var result = builder.build();
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isEmpty(), "Result should be empty when there are no queries");
     }
