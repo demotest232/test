@@ -1,43 +1,18 @@
- @Test
-    void testSetValuesAndGetBatchSize() throws Exception {
-        // Arrange
-        List<List<Object>> values = List.of(
-                List.of("Test1", 25),
-                List.of("Test2", 30)
-        );
+ Logger mockLogger = mock(Logger.class);
 
+        try (MockedStatic<LoggerFactory> loggerFactoryMock = mockStatic(LoggerFactory.class)) {
+           
+            loggerFactoryMock
+                    .when(() -> LoggerFactory.getLogger(GridModifyQueryBuilderImpl.class))
+                    .thenReturn(mockLogger);
 
-        Class<?> innerClass = Class.forName("your.package.GridModifyQueryBuilderImpl$StatementSetter");
+          
+            when(mockLogger.isDebugEnabled()).thenReturn(true);
 
+         
+            GridModifyQueryBuilderImpl builder = new GridModifyQueryBuilderImpl(null, null);
+            builder.build(); // or whichever method logs debug output
 
-        Constructor<?> ctor = innerClass.getDeclaredConstructor(List.class);
-        ctor.setAccessible(true);
-
-
-        Object statementSetter = ctor.newInstance(values);
-
-
-        PreparedStatement ps = mock(PreparedStatement.class);
-
-        Method setValuesMethod = innerClass.getDeclaredMethod("setValues", PreparedStatement.class, int.class);
-        setValuesMethod.setAccessible(true);
-
-        // Act
-        setValuesMethod.invoke(statementSetter, ps, 0); 
-        setValuesMethod.invoke(statementSetter, ps, 1); 
-
-   
-        verify(ps).setObject(1, "Test1");
-        verify(ps).setObject(2, 25);
-        verify(ps).setObject(1, "Test2");
-        verify(ps).setObject(2, 30);
-        verifyNoMoreInteractions(ps);
-
-   
-        Method getBatchSizeMethod = innerClass.getDeclaredMethod("getBatchSize");
-        getBatchSizeMethod.setAccessible(true);
-        int batchSize = (int) getBatchSizeMethod.invoke(statementSetter);
-
-        // Assert
-        assert batchSize == 2 : "Expected 2 batch rows";
-    }
+        
+            verify(mockLogger, atLeastOnce()).isDebugEnabled();
+        }
