@@ -1,38 +1,43 @@
  @Test
-    void testSetValuesSetsPreparedStatementParameters() throws SQLException {
+    void testSetValuesAndGetBatchSize() throws Exception {
         // Arrange
         List<List<Object>> values = List.of(
-                List.of("John", 25),
-                List.of("Jane", 30)
+                List.of("Test1", 25),
+                List.of("Test2", 30)
         );
 
-        GridModifyQueryBuilderImpl.StatementSetter setter =
-                new GridModifyQueryBuilderImpl.StatementSetter(values);
+
+        Class<?> innerClass = Class.forName("your.package.GridModifyQueryBuilderImpl$StatementSetter");
+
+
+        Constructor<?> ctor = innerClass.getDeclaredConstructor(List.class);
+        ctor.setAccessible(true);
+
+
+        Object statementSetter = ctor.newInstance(values);
+
 
         PreparedStatement ps = mock(PreparedStatement.class);
 
-        // Act
-        setter.setValues(ps, 0); // i = 0 → first row ("John", 25)
-        setter.setValues(ps, 1); // i = 1 → second row ("Jane", 30)
+        Method setValuesMethod = innerClass.getDeclaredMethod("setValues", PreparedStatement.class, int.class);
+        setValuesMethod.setAccessible(true);
 
-        // Assert
-        verify(ps).setObject(1, "John");
+        // Act
+        setValuesMethod.invoke(statementSetter, ps, 0); 
+        setValuesMethod.invoke(statementSetter, ps, 1); 
+
+   
+        verify(ps).setObject(1, "Test1");
         verify(ps).setObject(2, 25);
-        verify(ps).setObject(1, "Jane");
+        verify(ps).setObject(1, "Test2");
         verify(ps).setObject(2, 30);
         verifyNoMoreInteractions(ps);
-    }
 
-    @Test
-    void testGetBatchSizeReturnsCorrectSize() {
-        List<List<Object>> values = List.of(
-                List.of("A"),
-                List.of("B"),
-                List.of("C")
-        );
+   
+        Method getBatchSizeMethod = innerClass.getDeclaredMethod("getBatchSize");
+        getBatchSizeMethod.setAccessible(true);
+        int batchSize = (int) getBatchSizeMethod.invoke(statementSetter);
 
-        GridModifyQueryBuilderImpl.StatementSetter setter =
-                new GridModifyQueryBuilderImpl.StatementSetter(values);
-
-        assert setter.getBatchSize() == 3;
+        // Assert
+        assert batchSize == 2 : "Expected 2 batch rows";
     }
