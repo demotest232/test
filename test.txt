@@ -1,18 +1,97 @@
- Logger mockLogger = mock(Logger.class);
+ @Mock
+    private ExtendedObjectFactory xmlFactory;
 
-        try (MockedStatic<LoggerFactory> loggerFactoryMock = mockStatic(LoggerFactory.class)) {
-           
-            loggerFactoryMock
-                    .when(() -> LoggerFactory.getLogger(GridModifyQueryBuilderImpl.class))
-                    .thenReturn(mockLogger);
+    @Mock
+    private GenericCommand xmlValue;
 
-          
-            when(mockLogger.isDebugEnabled()).thenReturn(true);
+    @Mock
+    private GridCriterion gridCriterion;
 
-         
-            GridModifyQueryBuilderImpl builder = new GridModifyQueryBuilderImpl(null, null);
-            builder.build(); // or whichever method logs debug output
+    @Mock
+    private GridDataFactory<Object> gridDataFactory;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testExecuteCommand_WithValidGridFactory() {
+        // Arrange
+        GetGridDataHandler handler = new GetGridDataHandler();
+
+       
+        injectField(handler, "xmlFactory", xmlFactory);
+
+        Map<String, GridDataFactory<?>> gridFactories = new HashMap<>();
+        gridFactories.put("testGrid", gridDataFactory);
+        injectField(handler, "gridDataFactories", gridFactories);
 
         
-            verify(mockLogger, atLeastOnce()).isDebugEnabled();
+        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
+        XmlGridDataCommand mockResult = mock(XmlGridDataCommand.class);
+        List<GridCriterion> criteria = List.of(gridCriterion);
+
+        when(gridCriterion.getGridName()).thenReturn("testGrid");
+        when(mockCommand.getGridCriteria()).thenReturn(criteria);
+        when(gridDataFactory.getGridData(gridCriterion)).thenReturn("gridData");
+
+       
+        try (MockedConstruction<XmlGetGridDataCommand> cmdCtor = mockConstruction(XmlGetGridDataCommand.class,
+                (mock, context) -> {
+                    when(mock.getGridCriteria()).thenReturn(criteria);
+                });
+             MockedConstruction<XmlGridDataCommand> resCtor = mockConstruction(XmlGridDataCommand.class,
+                (mock, context) -> {
+                    when(mock.getGrids()).thenReturn(new ArrayList<>());
+                })) {
+
+            // Act
+            XmlGridDataCommand result = handler.executeCommand(xmlValue);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(1, result.getGrids().size());
+            assertTrue(result.getGrids().contains("gridData"));
         }
+    }
+
+    @Test
+    void testExecuteCommand_SkipsUnknownGridFactory() {
+        // Arrange
+        GetGridDataHandler handler = new GetGridDataHandler();
+        injectField(handler, "xmlFactory", xmlFactory);
+
+        Map<String, GridDataFactory<?>> gridFactories = new HashMap<>();
+        gridFactories.put("otherGrid", gridDataFactory); // no match
+        injectField(handler, "gridDataFactories", gridFactories);
+
+        XmlGetGridDataCommand mockCommand = mock(XmlGetGridDataCommand.class);
+        List<GridCriterion> criteria = List.of(gridCriterion);
+        when(gridCriterion.getGridName()).thenReturn("missingGrid");
+        when(mockCommand.getGridCriteria()).thenReturn(criteria);
+
+        try (MockedConstruction<XmlGetGridDataCommand> cmdCtor = mockConstruction(XmlGetGridDataCommand.class,
+                (mock, context) -> when(mock.getGridCriteria()).thenReturn(criteria));
+             MockedConstruction<XmlGridDataCommand> resCtor = mockConstruction(XmlGridDataCommand.class,
+                (mock, context) -> when(mock.getGrids()).thenReturn(new ArrayList<>()))) {
+
+            // Act
+            XmlGridDataCommand result = handler.executeCommand(xmlValue);
+
+            // Assert
+            assertNotNull(result);
+            assertTrue(result.getGrids().isEmpty());
+        }
+    }
+
+  
+    private static void injectField(Object target, String fieldName, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
