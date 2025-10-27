@@ -10,7 +10,7 @@
         Map<String, List<List<Object>>> addQueries = new HashMap<>();
         addQueries.put("INSERT INTO table (id, name) VALUES (?, ?)", List.of(List.of(2, "Jane")));
 
-        // Simulate sqlQueries field
+      
         builder.sqlQueries.put(OperationTypeEnum.DELETE, deleteQueries);
         builder.sqlQueries.put(OperationTypeEnum.UPDATE, updateQueries);
         builder.sqlQueries.put(OperationTypeEnum.ADD, addQueries);
