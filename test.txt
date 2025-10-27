@@ -1,46 +1,37 @@
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import org.mockito.Mockito;
+ @Test
+    void testBuild_withAllOperationTypes() {
+        // Arrange
+        Map<String, List<List<Object>>> deleteQueries = new HashMap<>();
+        deleteQueries.put("DELETE FROM table WHERE id=?", List.of(List.of(1)));
 
+        Map<String, List<List<Object>>> updateQueries = new HashMap<>();
+        updateQueries.put("UPDATE table SET name=? WHERE id=?", List.of(List.of("John", 1)));
 
+        Map<String, List<List<Object>>> addQueries = new HashMap<>();
+        addQueries.put("INSERT INTO table (id, name) VALUES (?, ?)", List.of(List.of(2, "Jane")));
 
-class RequestMessageGeneratorUnitTest {
+        // Simulate sqlQueries field
+        builder.sqlQueries.put(OperationTypeEnum.DELETE, deleteQueries);
+        builder.sqlQueries.put(OperationTypeEnum.UPDATE, updateQueries);
+        builder.sqlQueries.put(OperationTypeEnum.ADD, addQueries);
 
-    @Test
-    void testCreateMessage_nullRequest() {
-        RequestMessageGenerator generator = new RequestMessageGenerator();
-        assertEquals("(unknown request)", generator.createMessage(null).toString());
+        // Act
+        var result = builder.build();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(3, result.size(), "Should have 3 results total (1 per query type)");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("DELETE")), "Should contain DELETE query");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("UPDATE")), "Should contain UPDATE query");
+        assertTrue(result.stream().anyMatch(r -> r.getSql().startsWith("INSERT")), "Should contain INSERT query");
     }
 
     @Test
-    void testCreateMessage_getDocument() {
-        DummyRequest req = new DummyRequest("GETDOCUMENT", "doc1", null);
-        RequestMessageGenerator generator = new RequestMessageGenerator();
-        String result = generator.createMessage(req).toString();
+    void testBuild_withNoQueries() {
+        // Act
+        var result = builder.build();
 
-        assertTrue(result.contains("requestType=GETDOCUMENT"));
-        assertTrue(result.contains("params")); 
-        assertTrue(result.contains("doc1"));   
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Result should be empty when no queries exist");
     }
-
-    @Test
-    void testCreateMessage_getDocuments() {
-        DummyRequest req = new DummyRequest("GETDOCUMENTS", null, "searchParamSet");
-        RequestMessageGenerator generator = new RequestMessageGenerator();
-        String result = generator.createMessage(req).toString();
-
-        assertTrue(result.contains("requestType=GETDOCUMENTS"));
-        assertTrue(result.contains("searchParamSet"));
-    }
-
-    @Test
-    void testCreateMessage_unknownType() {
-        DummyRequest req = new DummyRequest("FOO_TYPE", null, null);
-        RequestMessageGenerator generator = new RequestMessageGenerator();
-        String result = generator.createMessage(req).toString();
-
-        assertTrue(result.contains("requestType=FOO_TYPE"));
-        // Should not contain any params, so it will not append "params"
-        assertFalse(result.contains("params"));
-    }
-}
