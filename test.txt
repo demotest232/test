@@ -1,13 +1,37 @@
-@Test
-void testConfigurationsEnum() {
-    for (RequestDetailConfiguration.Configurations configEnum : RequestDetailConfiguration.Configurations.values()) {
-        RequestDetailConfiguration conf = configEnum.getConfiguration();
-        assertNotNull(conf);
-     
-        if (configEnum == RequestDetailConfiguration.Configurations.PMC_PORTFOLIO) {
-            assertEquals("pmcapi.portfolio_request_detail", conf.requestDetailTabeName);
-            assertEquals("pmcapi.request_detail_seq", conf.sequenceName);
-        }
-      
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ConversionExceptionTest {
+
+    @Test
+    void testDefaultConstructor() {
+        ConversionException ex = new ConversionException();
+        assertNull(ex.getMessage()); 
+        assertNull(ex.getCause());   
+    }
+
+    @Test
+    void testMessageConstructor() {
+        String message = "Test Message";
+        ConversionException ex = new ConversionException(message);
+        assertEquals(message, ex.getMessage());
+        assertNull(ex.getCause());
+    }
+
+    @Test
+    void testCauseConstructor() {
+        Throwable cause = new RuntimeException("Inner");
+        ConversionException ex = new ConversionException(cause);
+        assertEquals("java.lang.RuntimeException: Inner", ex.getMessage());
+        assertEquals(cause, ex.getCause());
+    }
+
+    @Test
+    void testMessageAndCauseConstructor() {
+        String message = "Test Exception";
+        Throwable cause = new RuntimeException("Inner");
+        ConversionException ex = new ConversionException(message, cause);
+        assertEquals(message, ex.getMessage());
+        assertEquals(cause, ex.getCause());
     }
 }
