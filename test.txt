@@ -1,17 +1,38 @@
- @SuppressWarnings("unchecked")
-    private void setSqlQueries(Map<OperationTypeEnum, Map<String, List<List<Object>>>> newMap) {
-        try {
-            Field field = GridModifyQueryBuilderImpl.class.getDeclaredField("sqlQueries");
-            field.setAccessible(true);
+ @Test
+    void testSetValuesSetsPreparedStatementParameters() throws SQLException {
+        // Arrange
+        List<List<Object>> values = List.of(
+                List.of("John", 25),
+                List.of("Jane", 30)
+        );
 
-         
-            Map<OperationTypeEnum, Map<String, List<List<Object>>>> existing =
-                    (Map<OperationTypeEnum, Map<String, List<List<Object>>>>) field.get(builder);
+        GridModifyQueryBuilderImpl.StatementSetter setter =
+                new GridModifyQueryBuilderImpl.StatementSetter(values);
 
-         
-            existing.clear();
-            existing.putAll(newMap);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to modify sqlQueries", e);
-        }
+        PreparedStatement ps = mock(PreparedStatement.class);
+
+        // Act
+        setter.setValues(ps, 0); // i = 0 → first row ("John", 25)
+        setter.setValues(ps, 1); // i = 1 → second row ("Jane", 30)
+
+        // Assert
+        verify(ps).setObject(1, "John");
+        verify(ps).setObject(2, 25);
+        verify(ps).setObject(1, "Jane");
+        verify(ps).setObject(2, 30);
+        verifyNoMoreInteractions(ps);
+    }
+
+    @Test
+    void testGetBatchSizeReturnsCorrectSize() {
+        List<List<Object>> values = List.of(
+                List.of("A"),
+                List.of("B"),
+                List.of("C")
+        );
+
+        GridModifyQueryBuilderImpl.StatementSetter setter =
+                new GridModifyQueryBuilderImpl.StatementSetter(values);
+
+        assert setter.getBatchSize() == 3;
     }
