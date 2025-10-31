@@ -1,37 +1,7 @@
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-class ConversionExceptionTest {
-
-    @Test
-    void testDefaultConstructor() {
-        ConversionException ex = new ConversionException();
-        assertNull(ex.getMessage()); 
-        assertNull(ex.getCause());   
-    }
-
-    @Test
-    void testMessageConstructor() {
-        String message = "Test Message";
-        ConversionException ex = new ConversionException(message);
-        assertEquals(message, ex.getMessage());
-        assertNull(ex.getCause());
-    }
-
-    @Test
-    void testCauseConstructor() {
-        Throwable cause = new RuntimeException("Inner");
-        ConversionException ex = new ConversionException(cause);
-        assertEquals("java.lang.RuntimeException: Inner", ex.getMessage());
-        assertEquals(cause, ex.getCause());
-    }
-
-    @Test
-    void testMessageAndCauseConstructor() {
-        String message = "Test Exception";
-        Throwable cause = new RuntimeException("Inner");
-        ConversionException ex = new ConversionException(message, cause);
-        assertEquals(message, ex.getMessage());
-        assertEquals(cause, ex.getCause());
-    }
-}
+domFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); 
+domFactory.setFeature("http://xml.org/sax/features/external-general-entities", false); 
+domFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false); 
+domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false); 
+domFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true); 
+domFactory.setXIncludeAware(false);
+domFactory.setExpandEntityReferences(false);
