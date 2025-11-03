@@ -1,60 +1,9 @@
-
-    @Mock ThreadLocalUUID threadLocalUUID;
-    @Mock UUIDContext uuidContext;
-    @Mock TrackingContext trackingContext;
-
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-      
-    }
-
-    @Test
-    void testStartLogNullMessageUsesDefault() {
-        // Arrange
-        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
-        // Act
-        TrackingContext result = yourService.startLog(null);
-        // Assert
-        assertNotNull(result);
-      
-    }
-
-    @Test
-    void testStartLogEmptyMessageUsesDefault() {
-        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
-        TrackingContext result = yourService.startLog("");
-        assertNotNull(result);
-       
-    }
-
-    @Test
-    void testStartLogWithValidMessage() {
-        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
-        TrackingContext result = yourService.startLog("TestMsg");
-        assertEquals("TestMsg", result.getMessage());
-    }
-
-    @Test
-    void testUUIDContextIsNull_setsUUIDContextCreatedTrue() {
-        when(threadLocalUUID.getUUIDContext()).thenReturn(null);
-        when(threadLocalUUID.setUUID(any())).thenReturn(uuidContext);
-        TrackingContext result = yourService.startLog("Msg");
-        assertTrue(result.isContextCreated());
-    }
-
-    @Test
-    void testIncrementLevelCalled() {
-        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
-        TrackingContext result = yourService.startLog("Msg");
-        verify(uuidContext, times(1)).incrementLevel();
-    }
-
-    @Test
-    void testExceptionResetsUUID() {
-        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
-        doThrow(new RuntimeException()).when(uuidContext).incrementLevel();
-        assertThrows(RuntimeException.class, () -> yourService.startLog("Msg"));
-        // verify reset called if context was created
-        verify(threadLocalUUID, times(1)).reset();
+ try (MockedStatic<ThreadLocalUUID> mockedStatic = mockStatic(ThreadLocalUUID.class)) {
+        mockedStatic.when(ThreadLocalUUID::getUUIDContext).thenReturn(null);
+        
+        TrackingContext context = tracker.startLog("STUB");
+        assertTrackingContext(context);
+        UUIDContext uuidContext = context.getUuidContext();
+        assertUUIDContext(uuidContext);
+        assertEquals(1, uuidContext.getLevel());
     }
