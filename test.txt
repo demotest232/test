@@ -1,0 +1,60 @@
+// Mocks and setup for ThreadLocalUUID, message defaults, logging, etc.
+    @Mock ThreadLocalUUID threadLocalUUID;
+    @Mock UUIDContext uuidContext;
+    @Mock TrackingContext trackingContext;
+
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+        // Setup default stubs and environment
+    }
+
+    @Test
+    void testStartLogNullMessageUsesDefault() {
+        // Arrange
+        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
+        // Act
+        TrackingContext result = yourService.startLog(null);
+        // Assert
+        assertNotNull(result);
+        // add assertions for log output and default message usage
+    }
+
+    @Test
+    void testStartLogEmptyMessageUsesDefault() {
+        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
+        TrackingContext result = yourService.startLog("");
+        assertNotNull(result);
+        // assert for default message branch
+    }
+
+    @Test
+    void testStartLogWithValidMessage() {
+        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
+        TrackingContext result = yourService.startLog("TestMsg");
+        assertEquals("TestMsg", result.getMessage());
+    }
+
+    @Test
+    void testUUIDContextIsNull_setsUUIDContextCreatedTrue() {
+        when(threadLocalUUID.getUUIDContext()).thenReturn(null);
+        when(threadLocalUUID.setUUID(any())).thenReturn(uuidContext);
+        TrackingContext result = yourService.startLog("Msg");
+        assertTrue(result.isContextCreated());
+    }
+
+    @Test
+    void testIncrementLevelCalled() {
+        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
+        TrackingContext result = yourService.startLog("Msg");
+        verify(uuidContext, times(1)).incrementLevel();
+    }
+
+    @Test
+    void testExceptionResetsUUID() {
+        when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
+        doThrow(new RuntimeException()).when(uuidContext).incrementLevel();
+        assertThrows(RuntimeException.class, () -> yourService.startLog("Msg"));
+        // verify reset called if context was created
+        verify(threadLocalUUID, times(1)).reset();
+    }
