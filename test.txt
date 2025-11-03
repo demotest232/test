@@ -1,4 +1,4 @@
-// Mocks and setup for ThreadLocalUUID, message defaults, logging, etc.
+
     @Mock ThreadLocalUUID threadLocalUUID;
     @Mock UUIDContext uuidContext;
     @Mock TrackingContext trackingContext;
@@ -6,7 +6,7 @@
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
-        // Setup default stubs and environment
+      
     }
 
     @Test
@@ -17,7 +17,7 @@
         TrackingContext result = yourService.startLog(null);
         // Assert
         assertNotNull(result);
-        // add assertions for log output and default message usage
+      
     }
 
     @Test
@@ -25,7 +25,7 @@
         when(threadLocalUUID.getUUIDContext()).thenReturn(uuidContext);
         TrackingContext result = yourService.startLog("");
         assertNotNull(result);
-        // assert for default message branch
+       
     }
 
     @Test
