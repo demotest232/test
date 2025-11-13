@@ -1,9 +1,1 @@
- try (MockedStatic<ThreadLocalUUID> mockedStatic = mockStatic(ThreadLocalUUID.class)) {
-        mockedStatic.when(ThreadLocalUUID::getUUIDContext).thenReturn(null);
-        
-        TrackingContext context = tracker.startLog("STUB");
-        assertTrackingContext(context);
-        UUIDContext uuidContext = context.getUuidContext();
-        assertUUIDContext(uuidContext);
-        assertEquals(1, uuidContext.getLevel());
-    }
+"^/([\\w\\-. ]+)(/[\\w\\-. ]+)+$"
