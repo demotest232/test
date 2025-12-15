@@ -1,15 +1,1 @@
-Document API Modernization
-
-Gained a full understanding of the Document API architecture and the end-to-end flow.
-
-Successfully set up the Spring Boot application using the template framework.
-
-Developed and delivered the list of transaction REST endpoints for integration testing.
-
-Legacy Location Check API Migration
-
-Analyzed and understood the Legacy Location Check API end-to-end architecture.
-
-Reviewed and refactored the legacy codebase, fixing migration issues related to Spring Boot and updated libraries.
-
-Enhanced the location check endpoint by removing IBM WAS-based external endpoint logic and replacing it with the legacy location check implementation.
+The official r2dbc-mssql driver only supports username/password style logins; integrated / Entra ID (AAD) authentication modes such as ActiveDirectoryPassword, ActiveDirectoryManagedIdentity, or ActiveDirectoryDefault are not implemented.
